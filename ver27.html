@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cloud Studio Pro</title>
+    <style>
+        /* FONTS - Including Ver10 favorites */
+        @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&family=Bangers&family=Playfair+Display:wght@700&display=swap');
+
+        :root {
+            --bg-room: #121212;
+            --machine-shell: #f0f0f0;
+            --accent: #ffb7b2; 
+            --accent-btn: #ff9e99;
+            --studio-light: #ffffff;
+            --light-color: #ffffff; /* Dynamic Light Color */
+            --light-int: 1;
+            --delete-red: #ff6b6b;
+        }
+
+        * { box-sizing: border-box; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            margin: 0; height: 100vh; background-color: var(--bg-room);
+            font-family: 'Quicksand', sans-serif; /* Ver10 Font */
+            display: flex; justify-content: center; align-items: center;
+            background-image: 
+                radial-gradient(circle at 50% 30%, var(--light-color) 0%, transparent 60%),
+                radial-gradient(#222 15%, transparent 16%);
+            background-size: 100% 100%, 40px 40px;
+            background-blend-mode: soft-light, normal;
+            overflow: hidden;
+            transition: background 0.5s ease;
+        }
+
+        /* ICONS */
+        .icon { width: 24px; height: 24px; fill: currentColor; }
+
+        /* --- BOOTH STRUCTURE --- */
+        .booth-structure {
+            display: flex; flex-direction: column; align-items: center;
+            width: 100%; max-width: 520px; height: 98vh; position: relative;
+        }
+
+        .top-light-cap {
+            width: 100%; height: 60px; background: var(--light-color);
+            border-radius: 40px 40px 10px 10px; margin-bottom: 10px; z-index: 2;
+            box-shadow: 0 0 20px var(--light-color);
+            border: 4px solid #fff; position: relative;
+            transition: background 0.3s, box-shadow 0.3s;
+        }
+
+        .booth-casing {
+            flex: 1; width: 100%; background: var(--machine-shell);
+            border-radius: 30px; padding: 15px; display: flex; flex-direction: column;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5); position: relative;
+        }
+
+        .camera-deco { width: 100%; display: flex; justify-content: center; margin-bottom: 10px; }
+        .lens-circle {
+            width: 40px; height: 40px; background: #333; border-radius: 50%;
+            border: 4px solid #ddd; position: relative;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .main-stage { flex: 1; display: flex; gap: 15px; position: relative; height: 100%; overflow: hidden; }
+
+        /* --- LIGHT STRIP (Updated) --- */
+        .side-light {
+            width: 25px; 
+            background: var(--light-color); /* Physical color matches light */
+            border-radius: 20px;
+            /* Curved glow matching the strip */
+            box-shadow: 0 0 calc(20px * var(--light-int)) var(--light-color), inset 0 0 10px rgba(255,255,255,0.5);
+            opacity: var(--light-int);
+            transition: background 0.3s, box-shadow 0.3s, opacity 0.3s;
+        }
+
+        .screen-container {
+            flex: 1; background: #fff; border-radius: 20px; position: relative;
+            overflow: hidden; display: flex; flex-direction: column; border: 6px solid #333;
+        }
+
+        /* --- VIEWS --- */
+        .view { flex: 1; display: none; flex-direction: column; position: relative; background: #fff; width: 100%; height: 100%; }
+        .view.active { display: flex; }
+
+        /* START VIEW (Ver 10 Style) */
+        .start-view { justify-content: center; align-items: center; background: radial-gradient(circle at center, #fff 0%, #fff0f5 100%); }
+        .logo-cloud { font-size: 5rem; margin-bottom: 10px; animation: float 3s infinite ease-in-out; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+        
+        .start-view h1 {
+            font-family: 'Quicksand', sans-serif; /* Clean font from Ver 10 */
+            font-size: 2.5rem; color: #333; margin: 0 0 20px 0; font-weight: 700;
+        }
+
+        .btn-main {
+            padding: 16px 50px; background: var(--accent-btn); color: white;
+            border: none; border-radius: 50px; font-size: 1.1rem; font-weight: 700;
+            box-shadow: 0 8px 20px rgba(255, 183, 178, 0.5); cursor: pointer;
+        }
+
+        /* CAMERA VIEW */
+        .camera-area { 
+            flex: 1; position: relative; background: #000; overflow: hidden; 
+            display: flex; justify-content: center; align-items: center;
+        }
+        
+        /* Fixed Aspect Ratio Container (3:4) */
+        .video-wrapper {
+            width: 100%; height: 100%;
+            aspect-ratio: 3/4; /* Korean Photobooth Ratio */
+            position: relative; overflow: hidden;
+            max-width: 100%; max-height: 100%;
+        }
+
+        video { 
+            width: 100%; height: 100%; 
+            object-fit: cover; /* Fills the 3:4 box */
+            transform: scaleX(-1); 
+        }
+
+        .countdown {
+            position: absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+            font-size: 9rem; color: #fff; text-shadow: 0 5px 25px rgba(0,0,0,0.5);
+            font-weight: 700; display: none; z-index: 20;
+        }
+
+        .cam-ui {
+            padding: 10px; background: #fff; display: flex; flex-direction: column; gap: 10px; align-items: center; border-top: 2px solid #eee;
+        }
+
+        /* Sliders */
+        .slider-row { width: 100%; display: flex; gap: 10px; padding: 0 10px; align-items: center; }
+        .slider-group { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+        .slider-group label { font-size: 0.6rem; color: #888; font-weight: 700; }
+        input[type=range] { width: 100%; height: 4px; accent-color: var(--accent-btn); }
+
+        .controls-row { display: flex; align-items: center; gap: 20px; margin-top: 5px; }
+        .shutter-ring {
+            width: 65px; height: 65px; border-radius: 50%; border: 4px solid var(--accent);
+            padding: 4px; cursor: pointer; transition: transform 0.1s;
+        }
+        .shutter-ring:active { transform: scale(0.95); }
+        .shutter-inner { width: 100%; height: 100%; background: var(--accent); border-radius: 50%; }
+        
+        .light-picker-btn {
+            width: 35px; height: 35px; border-radius: 50%; overflow: hidden;
+            border: 2px solid #ddd; position: relative;
+            background-image: conic-gradient(red, yellow, lime, aqua, blue, magenta, red);
+        }
+        input[type="color"] { position: absolute; top:-50%; left:-50%; width:200%; height:200%; opacity:0; cursor: pointer; }
+
+        .btn-small { padding: 6px 12px; background: #eee; border-radius: 15px; font-size: 0.75rem; font-weight: 700; border: none; color: #666; cursor: pointer; }
+
+        /* SELECT VIEW */
+        .select-view { padding: 15px; background: #fafafa; }
+        .grid-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; overflow-y: auto; flex: 1; align-content: start; }
+        .thumb-wrap { aspect-ratio: 3/4; border-radius: 8px; overflow: hidden; border: 3px solid transparent; cursor: pointer; opacity: 0.7; position: relative; background: #000; }
+        .thumb-wrap.selected { border-color: var(--accent); opacity: 1; }
+        .thumb-wrap img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* EDITOR VIEW */
+        .editor-view { background: #eef; }
+        .canvas-area { 
+            flex: 1; display: flex; align-items: center; justify-content: center; 
+            padding: 20px; overflow: hidden; position: relative; background: #ddd;
+        }
+        canvas { 
+            max-width: 100%; max-height: 100%; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15); 
+            background: white; object-fit: contain; 
+        }
+
+        /* SCROLLWHEEL TOOLBAR */
+        .toolbar {
+            background: #fff; padding: 10px 0; border-top: 1px solid #eee;
+            display: flex; flex-direction: column; gap: 8px;
+        }
+        
+        .tool-scroll {
+            display: flex; gap: 10px; overflow-x: auto; padding: 0 15px;
+            scrollbar-width: none; align-items: center;
+            scroll-behavior: smooth;
+        }
+        .tool-scroll::-webkit-scrollbar { display: none; }
+
+        .tool-btn {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            min-width: 65px; height: 65px; border: 1px solid #eee; border-radius: 12px;
+            background: white; cursor: pointer; gap: 4px; flex-shrink: 0; color: #555; position: relative;
+        }
+        .tool-btn.active { background: #ffe0df; border-color: var(--accent-btn); color: var(--accent-btn); }
+        .tool-btn span.label { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; }
+        .tool-icon { font-size: 1.5rem; }
+
+        /* Hidden File Input */
+        #img-upload { display: none; }
+
+        /* Filter Classes */
+        .filter-beauty { filter: blur(calc(1px * var(--f-int))) brightness(calc(1 + 0.1 * var(--f-int))) contrast(0.95); }
+        .filter-bw { filter: grayscale(calc(100% * var(--f-int))); }
+        .filter-sepia { filter: sepia(calc(100% * var(--f-int))); }
+        .filter-warm { filter: sepia(calc(0.4 * var(--f-int))) saturate(calc(1.4 * var(--f-int))); }
+        .filter-grain { filter: contrast(1.2) brightness(1.1) grayscale(calc(100% * var(--f-int))); }
+
+        /* Context Bar */
+        .context-bar { background: #f8f8f8; padding: 8px; border-radius: 8px; display: none; align-items: center; justify-content: center; gap: 10px; }
+        .context-bar.active { display: flex; }
+        .delete-btn { background: var(--delete-red); color: white; border: none; border-radius: 5px; padding: 5px 12px; font-weight: 700; font-size: 0.8rem; }
+
+    </style>
+</head>
+<body>
+
+<div class="booth-structure">
+    <div class="top-light-cap"></div>
+    
+    <div class="booth-casing">
+        <div class="camera-deco"><div class="lens-circle"></div></div>
+        
+        <div class="main-stage">
+            <div class="side-light"></div>
+            <div class="screen-container">
+                
+                <div id="view-start" class="view active start-view">
+                    <div class="logo-cloud">☁️</div>
+                    <h1>Cloud Studio</h1>
+                    <button class="btn-main" onclick="startCamera()">Enter Booth</button>
+                </div>
+
+                <div id="view-camera" class="view">
+                    <div class="camera-area">
+                        <div class="video-wrapper">
+                            <video id="video" autoplay playsinline></video>
+                            <div class="countdown" id="countdown">3</div>
+                            <div id="flash-fx" style="position:absolute; inset:0; background:white; opacity:0; pointer-events:none;"></div>
+                        </div>
+                    </div>
+                    <div class="cam-ui">
+                        <div class="slider-row">
+                            <div class="slider-group">
+                                <label>LIGHT</label>
+                                <input type="range" min="0" max="1" step="0.1" value="1" oninput="updateLightInt(this.value)">
+                            </div>
+                            <div class="slider-group">
+                                <label>FILTER %</label>
+                                <input type="range" id="filterInt" min="0" max="1" step="0.1" value="0.8" oninput="updateFilterIntensity(this.value)">
+                            </div>
+                        </div>
+
+                        <div class="controls-row">
+                            <div class="light-picker-btn">
+                                <input type="color" oninput="changeStudioLight(this.value)" value="#ffffff">
+                            </div>
+                            <div class="shutter-ring" onclick="triggerCapture()"><div class="shutter-inner"></div></div>
+                            <button onclick="toggleFlip()" class="btn-small">Flip</button>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; width:100%; align-items:center; margin-top:5px;">
+                            <span id="shot-status" style="font-size:0.8rem; color:#888;">0 / 4</span>
+                            <button id="btn-finish" class="btn-small" style="background:#444; color:white; display:none;" onclick="finishSession()">Next ➔</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-select" class="view select-view">
+                    <h3 style="text-align:center; font-family:'Quicksand'; margin:10px;">Select Photos</h3>
+                    <div class="grid-container" id="thumb-grid"></div>
+                    <button id="btn-confirm" class="btn-main" style="width:100%; margin-top:10px; opacity:0.5; pointer-events:none;" onclick="goToEditor()">Edit Photo</button>
+                </div>
+
+                <div id="view-edit" class="view editor-view">
+                    <div class="canvas-area">
+                        <canvas id="canvas"></canvas>
+                        <div class="context-bar" id="context-bar">
+                             <button class="delete-btn" onclick="deleteActiveObject()">Delete Item</button>
+                        </div>
+                    </div>
+                    
+                    <div class="toolbar">
+                        <div style="text-align:center; font-size:0.7rem; color:#aaa;">‹ Slide for more ›</div>
+                        <div class="tool-scroll">
+                            <button class="tool-btn" onclick="setEditMode('filter', 'none')"><span class="tool-icon">🚫</span><span class="label">Norm</span></button>
+                            <button class="tool-btn" onclick="setEditMode('filter', 'beauty')"><span class="tool-icon">✨</span><span class="label">Beauty</span></button>
+                            <button class="tool-btn" onclick="setEditMode('filter', 'bw')"><span class="tool-icon">⚫</span><span class="label">B&W</span></button>
+                            
+                            <button class="tool-btn" onclick="addSticker('📹')"><span class="tool-icon">📹</span><span class="label">CCD</span></button>
+                            <button class="tool-btn" onclick="addSticker('🧢')"><span class="tool-icon">🧢</span><span class="label">Hat 1</span></button>
+                            <button class="tool-btn" onclick="addSticker('👒')"><span class="tool-icon">👒</span><span class="label">Hat 2</span></button>
+                            <button class="tool-btn" onclick="addSticker('🐰')"><span class="tool-icon">🐰</span><span class="label">Ears</span></button>
+                            
+                            <button class="tool-btn" onclick="document.getElementById('img-upload').click()">
+                                <span class="tool-icon">📁</span><span class="label">Add Img</span>
+                            </button>
+                            
+                            <button class="tool-btn" onclick="downloadCanvas()"><span class="tool-icon">💾</span><span class="label">Save</span></button>
+                        </div>
+                        <input type="file" id="img-upload" accept="image/png, image/jpeg" onchange="handleImageUpload(event)">
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    /* --- STATE --- */
+    const state = {
+        photos: [],
+        selectedPhoto: null,
+        objects: [], // stickers/images
+        activeObj: null,
+        filter: 'none',
+        filterInt: 0.8,
+        lightInt: 1
+    };
+
+    /* --- NAVIGATION --- */
+    function showView(id) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    async function startCamera() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { width: { ideal: 1280 }, height: { ideal: 960 }, facingMode: "user" } 
+            });
+            document.getElementById('video').srcObject = stream;
+            showView('view-camera');
+        } catch(e) { alert("Camera Error: " + e); }
+    }
+
+    /* --- LIGHTING & FILTERS --- */
+    function changeStudioLight(color) {
+        document.documentElement.style.setProperty('--light-color', color);
+    }
+
+    function updateLightInt(val) {
+        state.lightInt = val;
+        document.documentElement.style.setProperty('--light-int', val);
+    }
+
+    function updateFilterIntensity(val) {
+        state.filterInt = val;
+        document.documentElement.style.setProperty('--f-int', val);
+    }
+
+    /* --- CAMERA LOGIC --- */
+    function triggerCapture() {
+        const countEl = document.getElementById('countdown');
+        countEl.style.display = 'block';
+        let c = 3;
+        countEl.innerText = c;
+        
+        const interval = setInterval(() => {
+            c--;
+            if(c > 0) countEl.innerText = c;
+            else {
+                clearInterval(interval);
+                countEl.style.display = 'none';
+                captureShot();
+            }
+        }, 1000);
+    }
+
+    function captureShot() {
+        // Flash
+        const flash = document.getElementById('flash-fx');
+        flash.style.opacity = 1;
+        setTimeout(() => flash.style.opacity = 0, 300);
+
+        const video = document.getElementById('video');
+        // Capture at video resolution
+        const cvs = document.createElement('canvas');
+        cvs.width = video.videoWidth;
+        cvs.height = video.videoHeight;
+        const ctx = cvs.getContext('2d');
+        
+        // Mirror and draw
+        ctx.translate(cvs.width, 0);
+        ctx.scale(-1, 1);
+        
+        // Apply current filter to context before drawing? 
+        // Canvas filters are widely supported now
+        const fInt = state.filterInt;
+        if(state.filter === 'beauty') ctx.filter = `blur(${1*fInt}px) brightness(${1 + 0.1*fInt}) contrast(0.95)`;
+        else if(state.filter === 'bw') ctx.filter = `grayscale(${100*fInt}%)`;
+        else ctx.filter = 'none';
+
+        ctx.drawImage(video, 0, 0, cvs.width, cvs.height);
+        
+        state.photos.push(cvs.toDataURL('image/jpeg'));
+        updateShotStatus();
+    }
+
+    function updateShotStatus() {
+        document.getElementById('shot-status').innerText = `${state.photos.length} / 4`;
+        if(state.photos.length >= 1) document.getElementById('btn-finish').style.display = 'block';
+    }
+
+    function finishSession() {
+        // Populate selection grid
+        const grid = document.getElementById('thumb-grid');
+        grid.innerHTML = '';
+        state.photos.forEach((src, i) => {
+            const div = document.createElement('div');
+            div.className = 'thumb-wrap';
+            div.onclick = () => selectPhoto(i, div);
+            const img = document.createElement('img');
+            img.src = src;
+            div.appendChild(img);
+            grid.appendChild(div);
+        });
+        showView('view-select');
+    }
+
+    function selectPhoto(idx, el) {
+        state.selectedPhoto = state.photos[idx];
+        document.querySelectorAll('.thumb-wrap').forEach(d => d.classList.remove('selected'));
+        el.classList.add('selected');
+        const btn = document.getElementById('btn-confirm');
+        btn.style.opacity = 1;
+        btn.style.pointerEvents = 'auto';
+    }
+
+    function goToEditor() {
+        initEditor();
+        showView('view-edit');
+    }
+
+    function toggleFlip() {
+        document.getElementById('video').classList.toggle('mirrored');
+    }
+
+    /* --- EDITOR LOGIC --- */
+    let canvas, ctx, currentImg;
+
+    function initEditor() {
+        canvas = document.getElementById('canvas');
+        ctx = canvas.getContext('2d');
+        
+        currentImg = new Image();
+        currentImg.src = state.selectedPhoto;
+        currentImg.onload = () => {
+            // Set canvas to photo size
+            canvas.width = currentImg.width;
+            canvas.height = currentImg.height;
+            renderCanvas();
+        };
+
+        // Touch events
+        canvas.addEventListener('pointerdown', handleStart);
+        canvas.addEventListener('pointermove', handleMove);
+        canvas.addEventListener('pointerup', handleEnd);
+    }
+
+    function renderCanvas() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // 1. Draw BG Photo
+        ctx.save();
+        // Re-apply current editor filter if needed, 
+        // but typically we burned it in. Let's add extra layer filter.
+        const fInt = state.filterInt;
+        if(state.filter === 'beauty') ctx.filter = `blur(${1*fInt}px) brightness(${1+0.1*fInt}) contrast(0.95)`;
+        else if(state.filter === 'bw') ctx.filter = `grayscale(${100*fInt}%)`;
+        else ctx.filter = 'none';
+        
+        ctx.drawImage(currentImg, 0, 0);
+        ctx.restore();
+
+        // 2. Draw Objects
+        state.objects.forEach(obj => {
+            ctx.save();
+            ctx.translate(obj.x, obj.y);
+            ctx.rotate(obj.rot);
+            ctx.scale(obj.scale, obj.scale);
+            
+            if(obj.type === 'text') {
+                ctx.font = "100px sans-serif";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(obj.content, 0, 0);
+            } else if(obj.type === 'img') {
+                ctx.drawImage(obj.img, -obj.width/2, -obj.height/2, obj.width, obj.height);
+            }
+            
+            // Selection Ring
+            if(state.activeObj === obj) {
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 5;
+                ctx.beginPath();
+                if(obj.type === 'text') ctx.arc(0,0, 60, 0, Math.PI*2);
+                else ctx.rect(-obj.width/2, -obj.height/2, obj.width, obj.height);
+                ctx.stroke();
+            }
+            ctx.restore();
+        });
+
+        // Toggle context bar
+        const bar = document.getElementById('context-bar');
+        bar.className = state.activeObj ? 'context-bar active' : 'context-bar';
+    }
+
+    /* --- EDIT TOOLS --- */
+    function setEditMode(type, val) {
+        if(type === 'filter') {
+            state.filter = val;
+            renderCanvas();
+        }
+    }
+
+    function addSticker(char) {
+        state.objects.push({
+            type: 'text', content: char,
+            x: canvas.width/2, y: canvas.height/2,
+            rot: 0, scale: 1
+        });
+        renderCanvas();
+    }
+
+    function handleImageUpload(e) {
+        const file = e.target.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            const img = new Image();
+            img.src = evt.target.result;
+            img.onload = () => {
+                state.objects.push({
+                    type: 'img', img: img,
+                    width: 300, height: 300 * (img.height/img.width), // Preset size
+                    x: canvas.width/2, y: canvas.height/2,
+                    rot: 0, scale: 1
+                });
+                renderCanvas();
+            }
+        };
+        reader.readAsDataURL(file);
+        e.target.value = ''; // Reset
+    }
+
+    function deleteActiveObject() {
+        if(state.activeObj) {
+            state.objects = state.objects.filter(o => o !== state.activeObj);
+            state.activeObj = null;
+            renderCanvas();
+        }
+    }
+
+    function downloadCanvas() {
+        const link = document.createElement('a');
+        link.download = 'cloud_studio_photo.png';
+        link.href = canvas.toDataURL();
+        link.click();
+    }
+
+    /* --- DRAG LOGIC --- */
+    let isDrag = false, lastP = {x:0, y:0};
+
+    function getPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        return { 
+            x: (e.clientX - rect.left) * scaleX, 
+            y: (e.clientY - rect.top) * scaleY 
+        };
+    }
+
+    function handleStart(e) {
+        const p = getPos(e);
+        // Simple hit test
+        let hit = null;
+        for(let i=state.objects.length-1; i>=0; i--) {
+            const o = state.objects[i];
+            const dist = Math.hypot(p.x - o.x, p.y - o.y);
+            // Rough approximation for hit area
+            if(dist < 100 * o.scale) { hit = o; break; }
+        }
+        state.activeObj = hit;
+        if(hit) {
+            isDrag = true;
+            lastP = p;
+        }
+        renderCanvas();
+    }
+
+    function handleMove(e) {
+        if(!isDrag || !state.activeObj) return;
+        e.preventDefault();
+        const p = getPos(e);
+        state.activeObj.x += p.x - lastP.x;
+        state.activeObj.y += p.y - lastP.y;
+        lastP = p;
+        renderCanvas();
+    }
+
+    function handleEnd() { isDrag = false; }
+
+</script>
+</body>
+</html>

@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cloud Studio</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&display=swap');
+
+        :root {
+            --bg-room: #2d2d2d; /* Dark surrounding room */
+            --machine-shell: #f8f9fa;
+            --machine-bezel: #fff;
+            --accent: #ffb7b2; /* Soft Pastel Pink */
+            --accent-dark: #ff9e99;
+            --text: #4a4a4a;
+            --screen-radius: 20px;
+        }
+
+        * { box-sizing: border-box; touch-action: none; user-select: none; -webkit-user-select: none; }
+
+        body {
+            margin: 0;
+            height: 100vh;
+            background-color: var(--bg-room);
+            font-family: 'Quicksand', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            /* Subtle background pattern of a dark room */
+            background-image: radial-gradient(#333 15%, transparent 16%);
+            background-size: 30px 30px;
+        }
+
+        /* --- PHYSICAL MACHINE SHELL --- */
+        .booth-casing {
+            width: 100%;
+            max-width: 480px;
+            height: 96vh;
+            background: var(--machine-shell);
+            border-radius: 35px;
+            padding: 15px;
+            position: relative;
+            box-shadow: 
+                0 0 0 10px #e0e0e0, /* Outer plastic rim */
+                0 30px 60px rgba(0,0,0,0.5); /* Drop shadow on floor */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Hardware bits */
+        .camera-lens-hole {
+            width: 12px; height: 12px; background: #1a1a1a; border-radius: 50%;
+            margin-bottom: 12px; box-shadow: inset 0 0 4px #000;
+        }
+
+        /* --- THE SCREEN --- */
+        .screen {
+            width: 100%;
+            flex: 1;
+            background: #fff;
+            border-radius: var(--screen-radius);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            border: 6px solid #111; /* Screen bezel */
+        }
+
+        /* --- VIEWS --- */
+        .view {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            position: relative;
+            background: #fff;
+        }
+        .view.active { display: flex; }
+
+        /* 1. START SCREEN */
+        .start-view {
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(180deg, #fff 0%, #fff0f0 100%);
+        }
+        .logo {
+            font-size: 2.5rem; color: var(--text); font-weight: 700;
+            margin-bottom: 5px; letter-spacing: -1px;
+        }
+        .start-btn {
+            margin-top: 30px;
+            background: var(--text);
+            color: white;
+            padding: 18px 50px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+            animation: pulse 2s infinite;
+        }
+        .start-btn:active { transform: scale(0.95); }
+        @keyframes pulse { 0% {box-shadow: 0 0 0 0 rgba(74,74,74, 0.2);} 70% {box-shadow: 0 0 0 15px rgba(74,74,74, 0);} 100% {box-shadow: 0 0 0 0 rgba(74,74,74, 0);} }
+
+        /* 2. CAMERA */
+        .camera-wrapper {
+            flex: 1; background: #000; position: relative;
+            border-radius: 14px 14px 0 0; overflow: hidden;
+        }
+        video { width: 100%; height: 100%; object-fit: cover; }
+        .mirrored { transform: scaleX(-1); }
+        
+        .cam-controls {
+            height: 120px; background: #fff;
+            display: flex; justify-content: center; align-items: center; gap: 40px;
+        }
+        .circle-btn {
+            width: 50px; height: 50px; border-radius: 50%; border: 2px solid #eee;
+            background: #fff; color: #555; font-size: 1.2rem; cursor: pointer;
+        }
+        .shutter-btn {
+            width: 75px; height: 75px; border-radius: 50%;
+            background: var(--accent); border: 4px solid #fff;
+            box-shadow: 0 0 0 2px var(--accent);
+        }
+        .shutter-btn:active { transform: scale(0.9); }
+        .countdown {
+            position: absolute; top:50%; left:50%; transform:translate(-50%, -50%);
+            font-size: 6rem; color: #fff; font-weight: 700; display: none;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        /* 3. EDITOR */
+        .editor-container {
+            flex: 1; background: #f4f4f4;
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px;
+        }
+        canvas {
+            box-shadow: 0 5px 25px rgba(0,0,0,0.1);
+            background: white;
+            max-width: 100%; max-height: 100%;
+        }
+
+        /* TOOLBAR */
+        .toolbar {
+            background: #fff;
+            padding: 15px;
+            border-top: 1px solid #eee;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .tab-menu {
+            display: flex; justify-content: space-around;
+            border-bottom: 2px solid #f0f0f0; margin-bottom: 5px;
+        }
+        .tab-item {
+            padding: 8px 15px; color: #bbb; font-weight: 700; cursor: pointer; font-size: 0.9rem;
+        }
+        .tab-item.active { color: var(--accent-dark); border-bottom: 2px solid var(--accent); margin-bottom: -2px; }
+
+        .tools-panel {
+            display: flex; gap: 10px; overflow-x: auto; padding: 5px 0; align-items: center; scrollbar-width: none;
+        }
+        .icon-btn {
+            min-width: 45px; height: 45px; border-radius: 12px; border: 1px solid #eee;
+            background: #fff; display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem; color: #555; cursor: pointer;
+        }
+        .icon-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+        .btn-pill {
+            flex: 1; padding: 12px; border-radius: 12px; border: none; font-weight: 700; cursor: pointer;
+        }
+        .btn-save { background: var(--text); color: white; }
+        .btn-reset { background: #f0f0f0; color: #777; }
+
+        /* Color Inputs */
+        .color-dot-wrapper {
+            position: relative; width: 40px; height: 40px; overflow: hidden; border-radius: 50%; border: 2px solid #eee;
+        }
+        input[type="color"] {
+            position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; border: none; cursor: pointer;
+        }
+
+        /* File Input Label */
+        .file-label {
+            font-size: 0.8rem; background: #f0f0f0; padding: 10px 15px; border-radius: 20px;
+            cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="booth-casing">
+    <div class="camera-lens-hole"></div>
+
+    <div class="screen">
+        
+        <div id="view-start" class="view active start-view">
+            <div style="font-size:3rem;">☁️</div>
+            <div class="logo">Cloud Studio</div>
+            <div style="color:#aaa; font-size: 0.9rem;">Modern Self-Photo Booth</div>
+            <button class="start-btn" onclick="startCamera()">Tap to Start</button>
+        </div>
+
+        <div id="view-camera" class="view">
+            <div class="camera-wrapper">
+                <video id="video" class="mirrored" autoplay playsinline></video>
+                <div class="countdown" id="countdown">3</div>
+                <div id="flash" style="position:absolute; inset:0; background:white; opacity:0; pointer-events:none; transition:0.2s;"></div>
+            </div>
+            <div class="cam-controls">
+                <button class="circle-btn" onclick="toggleFlip()">⇄</button>
+                <button class="shutter-btn" onclick="takePhotos()"></button>
+                <button class="circle-btn" onclick="location.reload()">✕</button>
+            </div>
+        </div>
+
+        <div id="view-edit" class="view">
+            <div class="editor-container">
+                <canvas id="canvas"></canvas>
+            </div>
+
+            <div class="toolbar">
+                <div class="tab-menu">
+                    <div class="tab-item active" onclick="setTab('layout')">Layout</div>
+                    <div class="tab-item" onclick="setTab('draw')">Draw</div>
+                    <div class="tab-item" onclick="setTab('stickers')">Stickers</div>
+                </div>
+
+                <div id="panel-layout" class="tools-panel">
+                    <button class="icon-btn" onclick="setLayout('grid')">田</button>
+                    <button class="icon-btn" onclick="setLayout('strip')">llll</button>
+                    
+                    <div style="width:1px; height:20px; background:#eee; margin:0 5px;"></div>
+                    
+                    <div class="color-dot-wrapper" title="Background Color">
+                        <input type="color" value="#ffffff" oninput="setBgColor(this.value)">
+                    </div>
+
+                    <label class="file-label">
+                        📂 Add Overlay
+                        <input type="file" hidden accept="image/*" onchange="uploadOverlay(event)">
+                    </label>
+                    <button class="icon-btn" style="min-width:30px; font-size:0.8rem;" onclick="clearOverlay()">✕</button>
+                </div>
+
+                <div id="panel-draw" class="tools-panel" style="display:none;">
+                    <button class="icon-btn" id="pen-toggle" onclick="togglePen()">✎</button>
+                    <div class="color-dot-wrapper">
+                        <input type="color" id="pen-color" value="#000000">
+                    </div>
+                    <input type="range" id="pen-size" min="2" max="20" value="5" style="width:80px">
+                    <button class="icon-btn" onclick="undoDraw()">⎌</button>
+                </div>
+
+                <div id="panel-stickers" class="tools-panel" style="display:none;">
+                    <button class="icon-btn" onclick="addText()">T</button>
+                    <button class="icon-btn" onclick="addSticker('☁️')">☁️</button>
+                    <button class="icon-btn" onclick="addSticker('✨')">✨</button>
+                    <button class="icon-btn" onclick="addSticker('🎀')">🎀</button>
+                    <button class="icon-btn" onclick="addSticker('🤍')">🤍</button>
+                    <button class="icon-btn" onclick="addSticker('🐾')">🐾</button>
+                </div>
+
+                <div style="display:flex; gap:10px; margin-top:5px;">
+                    <button class="btn-pill btn-reset" onclick="location.reload()">Restart</button>
+                    <button class="btn-pill btn-save" onclick="download()">Save</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    const CONFIG = {
+        width: 800,
+        height: 1200,
+        gap: 30
+    };
+
+    let state = {
+        photos: [],
+        layout: 'grid', // 'grid' or 'strip'
+        bgColor: '#ffffff',
+        overlayImg: null, // User uploaded frame overlay
+        isMirrored: true,
+        drawPaths: [],
+        objects: [], // Stickers/Text
+        activeObj: null,
+        isDrawing: false
+    };
+
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // --- CAMERA ---
+    async function startCamera() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: 'user', width: {ideal: 1280} }, 
+                audio: false 
+            });
+            video.srcObject = stream;
+            showView('view-camera');
+        } catch(e) {
+            alert("Camera access needed for the booth!");
+        }
+    }
+
+    function toggleFlip() {
+        state.isMirrored = !state.isMirrored;
+        video.classList.toggle('mirrored', state.isMirrored);
+    }
+
+    async function takePhotos() {
+        state.photos = [];
+        document.querySelector('.shutter-btn').disabled = true;
+
+        for(let i=0; i<4; i++) {
+            await doCountdown();
+            snapPhoto();
+            await new Promise(r => setTimeout(r, 1000));
+        }
+
+        video.srcObject.getTracks().forEach(t => t.stop());
+        initEditor();
+    }
+
+    function doCountdown() {
+        return new Promise(resolve => {
+            const el = document.getElementById('countdown');
+            el.style.display = 'block';
+            let c = 3;
+            el.innerText = c;
+            const t = setInterval(() => {
+                c--;
+                if(c>0) el.innerText = c;
+                else {
+                    clearInterval(t);
+                    el.style.display = 'none';
+                    resolve();
+                }
+            }, 1000);
+        });
+    }
+
+    function snapPhoto() {
+        const flash = document.getElementById('flash');
+        flash.style.opacity = 1;
+        setTimeout(() => flash.style.opacity = 0, 150);
+
+        const temp = document.createElement('canvas');
+        temp.width = 600; temp.height = 450; // 4:3 Aspect
+        const tCtx = temp.getContext('2d');
+
+        if(state.isMirrored) {
+            tCtx.translate(600, 0);
+            tCtx.scale(-1, 1);
+        }
+
+        // Object fit cover logic
+        const vw = video.videoWidth, vh = video.videoHeight;
+        const aspect = 600/450;
+        let sx, sy, sw, sh;
+        if(vw/vh > aspect) {
+            sh = vh; sw = sh * aspect;
+            sy = 0; sx = (vw - sw)/2;
+        } else {
+            sw = vw; sh = sw / aspect;
+            sx = 0; sy = (vh - sh)/2;
+        }
+
+        tCtx.drawImage(video, sx, sy, sw, sh, 0, 0, 600, 450);
+        state.photos.push(temp);
+    }
+
+    // --- EDITOR ---
+    function initEditor() {
+        showView('view-edit');
+        canvas.width = CONFIG.width;
+        canvas.height = CONFIG.height;
+        render();
+        initTouch();
+    }
+
+    function render() {
+        // 1. Background Color
+        ctx.fillStyle = state.bgColor;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // 2. Photos Layout
+        if(state.layout === 'grid') {
+            const pw = (CONFIG.width - (CONFIG.gap*3))/2;
+            const ph = pw * (3/4);
+            const startY = 150; // Room at top
+            
+            state.photos.forEach((p, i) => {
+                const col = i % 2;
+                const row = Math.floor(i / 2);
+                const x = CONFIG.gap + (col * (pw + CONFIG.gap));
+                const y = startY + (row * (ph + CONFIG.gap));
+                ctx.drawImage(p, x, y, pw, ph);
+            });
+        } else {
+            // Strip
+            const pw = CONFIG.width - (CONFIG.gap*4);
+            const ph = pw * (3/4);
+            const totalH = (ph * 4) + (CONFIG.gap*3);
+            const startY = (CONFIG.height - totalH)/2;
+
+            state.photos.forEach((p, i) => {
+                const x = (CONFIG.width - pw)/2;
+                const y = startY + (i * (ph + CONFIG.gap));
+                ctx.drawImage(p, x, y, pw, ph);
+            });
+        }
+
+        // 3. User Custom Overlay (Sits on top of photos)
+        if(state.overlayImg) {
+            ctx.drawImage(state.overlayImg, 0, 0, CONFIG.width, CONFIG.height);
+        }
+
+        // 4. Drawings
+        state.drawPaths.forEach(p => {
+            if(p.pts.length < 2) return;
+            ctx.beginPath();
+            ctx.strokeStyle = p.color;
+            ctx.lineWidth = p.size;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.moveTo(p.pts[0].x, p.pts[0].y);
+            for(let i=1; i<p.pts.length; i++) ctx.lineTo(p.pts[i].x, p.pts[i].y);
+            ctx.stroke();
+        });
+
+        // 5. Stickers/Text
+        state.objects.forEach(obj => {
+            ctx.save();
+            ctx.translate(obj.x, obj.y);
+            ctx.rotate(obj.rot);
+            ctx.scale(obj.scale, obj.scale);
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.font = 'bold 50px Quicksand';
+            ctx.fillStyle = '#4a4a4a';
+            ctx.fillText(obj.content, 0, 0);
+
+            if(state.activeObj === obj && !state.isDrawing) {
+                ctx.strokeStyle = '#ffb7b2';
+                ctx.lineWidth = 3;
+                const w = ctx.measureText(obj.content).width + 30;
+                ctx.strokeRect(-w/2, -40, w, 80);
+                // Handle
+                ctx.fillStyle = '#ffb7b2';
+                ctx.beginPath(); ctx.arc(w/2, 40, 8, 0, Math.PI*2); ctx.fill();
+            }
+            ctx.restore();
+        });
+    }
+
+    // --- TOOLS ---
+    function setLayout(l) { state.layout = l; render(); }
+    function setBgColor(c) { state.bgColor = c; render(); }
+    
+    function uploadOverlay(e) {
+        const f = e.target.files[0];
+        if(f) {
+            const img = new Image();
+            img.onload = () => { state.overlayImg = img; render(); };
+            img.src = URL.createObjectURL(f);
+        }
+    }
+    function clearOverlay() { state.overlayImg = null; render(); }
+
+    function togglePen() {
+        state.isDrawing = !state.isDrawing;
+        state.activeObj = null;
+        document.getElementById('pen-toggle').classList.toggle('active', state.isDrawing);
+        render();
+    }
+    function undoDraw() { state.drawPaths.pop(); render(); }
+
+    function addSticker(s) {
+        state.isDrawing = false;
+        state.objects.push({ content: s, x: CONFIG.width/2, y: CONFIG.height/2, scale: 1, rot: 0 });
+        state.activeObj = state.objects[state.objects.length-1];
+        render();
+    }
+    function addText() {
+        const t = prompt("Enter text:");
+        if(t) addSticker(t);
+    }
+
+    // --- INTERACTION ---
+    function initTouch() {
+        let isDrag = false, isTransform = false;
+        let lastP = {x:0, y:0};
+        let startAng = 0, startDist = 0;
+        let currPath = null;
+
+        function getPos(e) {
+            const r = canvas.getBoundingClientRect();
+            const cx = e.touches ? e.touches[0].clientX : e.clientX;
+            const cy = e.touches ? e.touches[0].clientY : e.clientY;
+            return {
+                x: (cx - r.left) * (canvas.width / r.width),
+                y: (cy - r.top) * (canvas.height / r.height)
+            };
+        }
+
+        canvas.addEventListener('pointerdown', e => {
+            const p = getPos(e);
+            
+            if(state.isDrawing) {
+                isDrag = true;
+                currPath = { pts:[p], color: document.getElementById('pen-color').value, size: document.getElementById('pen-size').value };
+                state.drawPaths.push(currPath);
+                render();
+                return;
+            }
+
+            // Hit test logic
+            if(state.activeObj) {
+                const o = state.activeObj;
+                const d = Math.hypot(p.x - o.x, p.y - o.y);
+                // Rough check for transform handle zone (bottom rightish)
+                if(d > 40 && d < 120) {
+                    isTransform = true;
+                    startAng = Math.atan2(p.y - o.y, p.x - o.x) - o.rot;
+                    startDist = d / o.scale;
+                    return;
+                }
+            }
+
+            let hit = null;
+            for(let i=state.objects.length-1; i>=0; i--) {
+                const o = state.objects[i];
+                if(Math.hypot(p.x - o.x, p.y - o.y) < 60*o.scale) { hit = o; break; }
+            }
+            state.activeObj = hit;
+            if(hit) { isDrag = true; lastP = p; }
+            render();
+        });
+
+        canvas.addEventListener('pointermove', e => {
+            if(!isDrag && !isTransform) return;
+            const p = getPos(e);
+            e.preventDefault();
+
+            if(state.isDrawing && isDrag) {
+                currPath.pts.push(p);
+                render();
+            } else if(isTransform && state.activeObj) {
+                const dx = p.x - state.activeObj.x;
+                const dy = p.y - state.activeObj.y;
+                state.activeObj.rot = Math.atan2(dy, dx) - startAng;
+                state.activeObj.scale = Math.hypot(dx, dy) / startDist;
+                render();
+            } else if(isDrag && state.activeObj) {
+                state.activeObj.x += p.x - lastP.x;
+                state.activeObj.y += p.y - lastP.y;
+                lastP = p;
+                render();
+            }
+        });
+
+        canvas.addEventListener('pointerup', () => { isDrag=false; isTransform=false; });
+    }
+
+    // --- UTILS ---
+    function setTab(name) {
+        document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tools-panel').forEach(p => p.style.display = 'none');
+        event.target.classList.add('active');
+        document.getElementById('panel-'+name).style.display = 'flex';
+        
+        // Reset pen state if leaving draw tab
+        if(name !== 'draw') { state.isDrawing = false; document.getElementById('pen-toggle').classList.remove('active'); }
+    }
+
+    function showView(id) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    function download() {
+        state.activeObj = null; render();
+        const a = document.createElement('a');
+        a.download = 'cloud_studio_photo.png';
+        a.href = canvas.toDataURL();
+        a.click();
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kawaii Booth</title>
+    <style>
+        :root {
+            --bg-color: #ffe6eb;
+            --booth-color: #fff0f5;
+            --accent: #ff8fab;
+            --text: #5e3a47;
+            --frame-color: #ffffff; /* Classic white frame */
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text);
+            font-family: 'Courier New', monospace; /* Retro vibe */
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin: 15px 0;
+            letter-spacing: 2px;
+        }
+
+        /* --- Screens --- */
+        .screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .active { display: flex; }
+
+        /* --- Camera View --- */
+        .camera-frame {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 3/4;
+            background: #000;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 4px solid var(--frame-color);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1); /* Mirror effect */
+        }
+
+        .countdown {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 5rem;
+            color: white;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(0,0,0,0.5);
+            display: none;
+        }
+
+        .flash {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: white;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.1s;
+        }
+
+        /* --- Result Canvas --- */
+        canvas {
+            max-width: 100%;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+            margin-bottom: 20px;
+        }
+
+        /* --- Controls --- */
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+        }
+
+        button {
+            background: var(--frame-color);
+            border: 2px solid var(--accent);
+            color: var(--accent);
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 0 var(--accent);
+            transition: transform 0.1s;
+        }
+
+        button:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+
+        button.primary {
+            background: var(--accent);
+            color: white;
+            border: 2px solid var(--accent);
+            box-shadow: 0 4px 0 #d66d8a;
+        }
+        
+        button.primary:active { box-shadow: none; }
+
+        /* --- Editing Toolbar --- */
+        .toolbar {
+            background: rgba(255,255,255,0.8);
+            padding: 10px;
+            border-radius: 15px;
+            margin-top: 10px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .sticker-scroll {
+            display: flex;
+            overflow-x: auto;
+            gap: 10px;
+            padding-bottom: 5px;
+        }
+
+        .sticker-btn {
+            font-size: 1.5rem;
+            background: none;
+            border: none;
+            box-shadow: none;
+            padding: 5px;
+            min-width: 40px;
+        }
+        
+        .sticker-btn.selected {
+            background: var(--accent);
+            border-radius: 50%;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .upload-label {
+            font-size: 0.8rem;
+            background: #eee;
+            padding: 8px;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="start-screen" class="screen active">
+        <h1>✨ KAWAII BOOTH ✨</h1>
+        <div style="font-size: 4rem; margin: 20px;">📸</div>
+        <p>Take 4 photos & decorate!</p>
+        <button class="primary" onclick="startCamera()">Start Booth</button>
+    </div>
+
+    <div id="camera-screen" class="screen">
+        <h1>Strike a Pose! <span id="photo-count">0/4</span></h1>
+        <div class="camera-frame">
+            <video id="video" autoplay playsinline></video>
+            <div id="countdown" class="countdown">3</div>
+            <div id="flash" class="flash"></div>
+        </div>
+        <div class="controls">
+            <button class="primary" onclick="startPhotoSequence()">Take 4 Photos</button>
+        </div>
+    </div>
+
+    <div id="edit-screen" class="screen">
+        <h1>Decorate! 🎀</h1>
+        <p style="font-size: 0.8rem; margin-top:-10px;">Tap sticker -> Tap photo to place</p>
+        
+        <canvas id="canvas"></canvas>
+
+        <div class="toolbar">
+            <div class="sticker-scroll" id="sticker-list">
+                <button class="sticker-btn" onclick="selectSticker('🎀')">🎀</button>
+                <button class="sticker-btn" onclick="selectSticker('✨')">✨</button>
+                <button class="sticker-btn" onclick="selectSticker('💖')">💖</button>
+                <button class="sticker-btn" onclick="selectSticker('🐱')">🐱</button>
+                <button class="sticker-btn" onclick="selectSticker('👑')">👑</button>
+                <button class="sticker-btn" onclick="selectSticker('🌸')">🌸</button>
+                <button class="sticker-btn" onclick="selectSticker('🕶️')">🕶️</button>
+            </div>
+
+            <label class="upload-label">
+                📂 Add Photo from Phone
+                <input type="file" id="upload-img" accept="image/*" onchange="handleImageUpload(event)">
+            </label>
+            
+            <button class="primary" style="width:100%" onclick="downloadPhoto()">💾 Save Photo</button>
+            <button onclick="location.reload()">🔄 Restart</button>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const PHOTO_WIDTH = 640;
+        const PHOTO_HEIGHT = 480; // 4:3 Aspect Ratio
+        const STRIP_BG_COLOR = "#ffffff";
+        const FRAME_PADDING = 40;
+        
+        let stream;
+        let photos = [];
+        let selectedSticker = null;
+        let uploadedImage = null;
+
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // 1. Initialize Camera
+        async function startCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }, 
+                    audio: false 
+                });
+                video.srcObject = stream;
+                switchScreen('camera-screen');
+            } catch (err) {
+                alert("Camera access needed! If you are on mobile, make sure you are using HTTPS or localhost.");
+            }
+        }
+
+        // 2. Photo Sequence Logic
+        async function startPhotoSequence() {
+            photos = [];
+            document.querySelector('.controls').style.display = 'none'; // Hide button
+            
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById('photo-count').innerText = `${i}/4`;
+                await runCountdown();
+                capturePhoto();
+                await new Promise(r => setTimeout(r, 1000)); // Short pause between shots
+            }
+
+            stopCamera();
+            generateCollage();
+            switchScreen('edit-screen');
+        }
+
+        function runCountdown() {
+            return new Promise(resolve => {
+                let count = 3;
+                const countEl = document.getElementById('countdown');
+                countEl.style.display = 'block';
+                countEl.innerText = count;
+
+                const interval = setInterval(() => {
+                    count--;
+                    if (count > 0) {
+                        countEl.innerText = count;
+                    } else {
+                        clearInterval(interval);
+                        countEl.style.display = 'none';
+                        resolve();
+                    }
+                }, 1000);
+            });
+        }
+
+        function capturePhoto() {
+            // Create a temp canvas to grab the frame
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = PHOTO_WIDTH;
+            tempCanvas.height = PHOTO_HEIGHT;
+            const tCtx = tempCanvas.getContext('2d');
+            
+            // Mirror the image to match preview
+            tCtx.translate(PHOTO_WIDTH, 0);
+            tCtx.scale(-1, 1);
+            
+            // Draw video frame
+            // We calculate aspect ratio to crop center (cover)
+            const videoRatio = video.videoWidth / video.videoHeight;
+            const targetRatio = PHOTO_WIDTH / PHOTO_HEIGHT;
+            
+            let sx, sy, sWidth, sHeight;
+            
+            if (videoRatio > targetRatio) {
+                sHeight = video.videoHeight;
+                sWidth = sHeight * targetRatio;
+                sy = 0;
+                sx = (video.videoWidth - sWidth) / 2;
+            } else {
+                sWidth = video.videoWidth;
+                sHeight = sWidth / targetRatio;
+                sx = 0;
+                sy = (video.videoHeight - sHeight) / 2;
+            }
+
+            tCtx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, PHOTO_WIDTH, PHOTO_HEIGHT);
+            
+            // Flash effect
+            const flash = document.getElementById('flash');
+            flash.style.opacity = 1;
+            setTimeout(() => flash.style.opacity = 0, 100);
+
+            photos.push(tempCanvas);
+        }
+
+        function stopCamera() {
+            stream.getTracks().forEach(track => track.stop());
+        }
+
+        // 3. Collage Generation
+        function generateCollage() {
+            // Strip Dimensions: 1 column, 4 photos, plus padding and date footer
+            const totalWidth = PHOTO_WIDTH + (FRAME_PADDING * 2);
+            const totalHeight = (PHOTO_HEIGHT * 4) + (FRAME_PADDING * 5) + 100; // 100px for date footer
+
+            canvas.width = totalWidth;
+            canvas.height = totalHeight;
+
+            // Fill Background
+            ctx.fillStyle = STRIP_BG_COLOR;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Photos
+            photos.forEach((photo, index) => {
+                const y = FRAME_PADDING + (index * (PHOTO_HEIGHT + FRAME_PADDING));
+                ctx.drawImage(photo, FRAME_PADDING, y, PHOTO_WIDTH, PHOTO_HEIGHT);
+                
+                // Add a slight border around individual photos
+                ctx.strokeStyle = "#eee";
+                ctx.lineWidth = 2;
+                ctx.strokeRect(FRAME_PADDING, y, PHOTO_WIDTH, PHOTO_HEIGHT);
+            });
+
+            // Add Date Stamp at bottom
+            ctx.fillStyle = "#aaa";
+            ctx.font = "bold 40px Courier New";
+            ctx.textAlign = "center";
+            const date = new Date().toLocaleDateString();
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            ctx.fillText(`${date} • ${time}`, totalWidth / 2, totalHeight - 40);
+        }
+
+        // 4. Editing Features (Stickers & Uploads)
+        
+        function selectSticker(sticker) {
+            selectedSticker = sticker;
+            uploadedImage = null; // Clear image selection
+            
+            // Visual feedback
+            document.querySelectorAll('.sticker-btn').forEach(b => b.classList.remove('selected'));
+            event.target.classList.add('selected');
+        }
+
+        function handleImageUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    uploadedImage = img;
+                    selectedSticker = null; // Clear sticker selection
+                    document.querySelectorAll('.sticker-btn').forEach(b => b.classList.remove('selected'));
+                    alert("Image loaded! Tap on the photo strip to stamp it.");
+                }
+                img.src = event.target.result;
+            }
+            reader.readAsDataURL(file);
+        }
+
+        // Handle clicks on canvas to place items
+        canvas.addEventListener('click', function(e) {
+            // Calculate scale in case canvas is resized via CSS
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
+
+            if (selectedSticker) {
+                ctx.font = "100px serif";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(selectedSticker, x, y);
+            } else if (uploadedImage) {
+                // Draw uploaded image (resized to 150px width)
+                const size = 150;
+                const aspect = uploadedImage.height / uploadedImage.width;
+                ctx.drawImage(uploadedImage, x - (size/2), y - (size*aspect/2), size, size * aspect);
+            }
+        });
+
+        // 5. Download / Save
+        function downloadPhoto() {
+            const link = document.createElement('a');
+            link.download = `kawaii-booth-${Date.now()}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        function switchScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+    </script>
+</body>
+</html>

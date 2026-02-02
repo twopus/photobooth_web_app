@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>K-Booth Studio</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;700&display=swap');
+
+        :root {
+            --bg-wall: #e0e0e0;
+            --machine-bg: #fff;
+            --screen-bg: #f8f9fa;
+            --primary: #ff8fab;
+            --primary-dark: #d66d8a;
+            --text-main: #5e3a47;
+            --led-color: #ffb7b2; /* Default Light Color */
+            --frame-color: #ffffff; /* Default Strip Frame */
+        }
+
+        * { box-sizing: border-box; touch-action: manipulation; }
+
+        body {
+            background-color: var(--bg-wall);
+            color: var(--text-main);
+            font-family: 'Quicksand', sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- THE BOOTH CHASSIS (Physical Machine Look) --- */
+        .booth-chassis {
+            width: 100%;
+            max-width: 450px;
+            height: 95vh;
+            background: var(--machine-bg);
+            border-radius: 40px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow: 
+                0 0 0 10px #333, /* Physical Case */
+                0 0 30px var(--led-color), /* Outer Glow */
+                inset 0 0 20px var(--led-color); /* Inner Glow */
+            transition: box-shadow 0.3s ease;
+        }
+
+        .booth-header {
+            text-align: center;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 2px;
+            color: #333;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* --- SCREENS --- */
+        .screen-container {
+            flex: 1;
+            background: var(--screen-bg);
+            border-radius: 20px;
+            border: 4px solid #eee;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .screen.active { display: flex; }
+
+        h1 { margin: 10px 0 20px; font-size: 1.5rem; text-align: center; color: var(--primary-dark); }
+        p { text-align: center; font-size: 0.9rem; margin-bottom: 20px; }
+
+        /* --- UI ELEMENTS --- */
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 1rem;
+            box-shadow: 0 4px 0 var(--primary-dark);
+            cursor: pointer;
+            transition: transform 0.1s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'Quicksand', sans-serif;
+            margin: 5px;
+        }
+        .btn:active { transform: translateY(4px); box-shadow: none; }
+        .btn.secondary { background: #fff; color: var(--text-main); border: 2px solid #ddd; box-shadow: 0 4px 0 #bbb; }
+        
+        .icon-svg { width: 24px; height: 24px; fill: currentColor; }
+
+        /* --- SETTINGS GRID --- */
+        .color-grid { display: flex; gap: 10px; margin-bottom: 20px; }
+        .color-opt { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 5px rgba(0,0,0,0.2); cursor: pointer; }
+        .color-opt.selected { transform: scale(1.2); border: 2px solid #333; }
+
+        /* --- CAMERA --- */
+        .camera-wrapper {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 3/4;
+            background: #000;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+        
+        /* Idol Overlay */
+        #idol-overlay-display {
+            position: absolute;
+            bottom: 0;
+            right: 0; /* Or left, depending on preference */
+            width: 40%; /* Idol takes up 40% of width */
+            height: auto;
+            max-height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .countdown-overlay {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 5rem; color: white;
+            font-weight: bold;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            display: none;
+            z-index: 20;
+        }
+
+        /* --- REORDERING --- */
+        .photo-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .photo-slot {
+            aspect-ratio: 3/4;
+            background: #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+            border: 3px solid transparent;
+        }
+        .photo-slot.selected-swap { border-color: var(--primary); animation: pulse 1s infinite; }
+        .photo-slot img { width: 100%; height: 100%; object-fit: cover; }
+        .slot-badge {
+            position: absolute; top: 5px; left: 5px;
+            background: rgba(0,0,0,0.6); color: white;
+            padding: 2px 8px; border-radius: 10px; font-size: 0.8rem;
+        }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        /* --- CANVAS EDITOR --- */
+        #final-canvas {
+            max-width: 80%;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 10px;
+        }
+
+        .toolbar {
+            width: 100%;
+            background: #fff;
+            padding: 10px;
+            border-top: 2px solid #eee;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .tool-row { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px; justify-content: center; }
+        
+        .slider-control {
+            display: flex; align-items: center; gap: 10px; width: 100%;
+            font-size: 0.8rem; font-weight: bold;
+        }
+        input[type=range] { flex: 1; accent-color: var(--primary); }
+
+        .hidden-file { display: none; }
+        
+        /* Custom Sticker Buttons */
+        .sticker-btn {
+            background: none; border: 2px solid #eee; border-radius: 10px;
+            padding: 5px; width: 40px; height: 40px;
+        }
+        .sticker-btn img { width: 100%; height: 100%; object-fit: contain; }
+
+    </style>
+</head>
+<body>
+
+    <div class="booth-chassis" id="chassis">
+        <div class="booth-header">
+            <span>✨ PHOTO STUDIO</span>
+            <div id="led-indicator" style="width:10px; height:10px; background:var(--led-color); border-radius:50%;"></div>
+        </div>
+
+        <div class="screen-container">
+            
+            <div id="screen-start" class="screen active">
+                <h1>Customize Booth</h1>
+                
+                <p>1. Booth Light Color</p>
+                <div class="color-grid" id="led-options">
+                    </div>
+
+                <p>2. Frame Style</p>
+                <div class="color-grid" id="frame-options">
+                    </div>
+
+                <p>3. Add "Idol" (Optional)</p>
+                <button class="btn secondary" onclick="document.getElementById('idol-upload').click()">
+                    <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+                    Upload Photo
+                </button>
+                <span id="idol-name" style="font-size:0.7rem; color:#888;"></span>
+                <input type="file" id="idol-upload" class="hidden-file" accept="image/*" onchange="handleIdolUpload(event)">
+
+                <div style="flex:1;"></div>
+                <button class="btn" onclick="goToCamera()">Start Photo Session</button>
+            </div>
+
+            <div id="screen-camera" class="screen">
+                <div class="camera-wrapper">
+                    <video id="video" autoplay playsinline></video>
+                    <img id="idol-overlay-display" src="" style="display:none;">
+                    <div id="countdown" class="countdown-overlay">3</div>
+                    <div id="flash" style="position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none; transition: opacity 0.1s;"></div>
+                </div>
+                <h2 id="photo-status">Ready?</h2>
+                <button class="btn" onclick="startSequence()">Take 4 Photos</button>
+            </div>
+
+            <div id="screen-reorder" class="screen">
+                <h1>Sort Photos</h1>
+                <p>Tap two photos to swap positions.</p>
+                <div class="photo-grid" id="sort-grid">
+                    </div>
+                <button class="btn" onclick="finishSorting()">Next: Decorate</button>
+            </div>
+
+            <div id="screen-edit" class="screen">
+                <canvas id="final-canvas"></canvas>
+                
+                <div class="toolbar">
+                    <div class="slider-control" id="controls-area" style="opacity: 0.5; pointer-events: none;">
+                        <span>📐 Size</span>
+                        <input type="range" id="scale-slider" min="0.5" max="3" step="0.1" value="1" oninput="updateActiveObject('scale', this.value)">
+                        <span>🔄 Tilt</span>
+                        <input type="range" id="rotate-slider" min="-180" max="180" step="5" value="0" oninput="updateActiveObject('rotate', this.value)">
+                    </div>
+
+                    <div class="tool-row">
+                        <button class="btn secondary" onclick="toggleDrawMode()" id="btn-draw">
+                            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                        </button>
+                        <button class="btn secondary" onclick="addText()">
+                            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M5 4v3h5.5v12h3V7H19V4z"/></svg>
+                        </button>
+                        <button class="btn secondary" onclick="document.getElementById('sticker-upload').click()">
+                             <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+                        </button>
+                        <input type="file" id="sticker-upload" class="hidden-file" accept="image/*" onchange="addStickerFromUpload(event)">
+                        
+                        <button class="btn" onclick="saveImage()">
+                            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        /** STATE & CONFIG **/
+        const CONFIG = {
+            width: 600,
+            height: 450, // Individual photo size (4:3)
+            gap: 30,
+            bottomSpace: 100,
+            ledColors: ['#ffb7b2', '#b5ead7', '#c7ceea', '#ffdac1'],
+            frameColors: ['#ffffff', '#222222', '#ffebf0', '#e0f7fa']
+        };
+
+        let state = {
+            led: CONFIG.ledColors[0],
+            frame: CONFIG.frameColors[0],
+            idolImg: null, // HTMLImageElement
+            photos: [], // Array of Canvases
+            order: [0, 1, 2, 3], // Indicies
+            canvasObjects: [], // {type, x, y, img, text, scale, rotation, width, height}
+            activeObjIndex: -1,
+            isDrawing: false,
+            penColor: '#5e3a47'
+        };
+
+        const canvas = document.getElementById('final-canvas');
+        const ctx = canvas.getContext('2d');
+        const video = document.getElementById('video');
+
+        /** INIT **/
+        function init() {
+            // Generate Color Pickers
+            const ledContainer = document.getElementById('led-options');
+            CONFIG.ledColors.forEach(c => {
+                const el = document.createElement('div');
+                el.className = 'color-opt';
+                el.style.backgroundColor = c;
+                el.onclick = () => setLed(c, el);
+                ledContainer.appendChild(el);
+            });
+
+            const frameContainer = document.getElementById('frame-options');
+            CONFIG.frameColors.forEach(c => {
+                const el = document.createElement('div');
+                el.className = 'color-opt';
+                el.style.backgroundColor = c;
+                el.onclick = () => setFrame(c, el);
+                frameContainer.appendChild(el);
+            });
+
+            // Set defaults
+            setLed(CONFIG.ledColors[0], ledContainer.children[0]);
+            setFrame(CONFIG.frameColors[0], frameContainer.children[0]);
+
+            setupCanvasInteraction();
+        }
+
+        function setLed(color, el) {
+            document.documentElement.style.setProperty('--led-color', color);
+            state.led = color;
+            document.querySelectorAll('#led-options .color-opt').forEach(d => d.classList.remove('selected'));
+            el.classList.add('selected');
+        }
+
+        function setFrame(color, el) {
+            document.documentElement.style.setProperty('--frame-color', color);
+            state.frame = color;
+            document.querySelectorAll('#frame-options .color-opt').forEach(d => d.classList.remove('selected'));
+            el.classList.add('selected');
+        }
+
+        function handleIdolUpload(e) {
+            const file = e.target.files[0];
+            if(file) {
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        state.idolImg = img;
+                        const display = document.getElementById('idol-overlay-display');
+                        display.src = evt.target.result;
+                        display.style.display = 'block';
+                        document.getElementById('idol-name').innerText = "Idol Added!";
+                    };
+                    img.src = evt.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        /** CAMERA FLOW **/
+        async function goToCamera() {
+            switchScreen('screen-camera');
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "user", width: { ideal: 1280 } }, 
+                    audio: false 
+                });
+                video.srcObject = stream;
+            } catch (err) {
+                alert("Camera access needed!");
+            }
+        }
+
+        async function startSequence() {
+            state.photos = [];
+            const btn = document.querySelector('#screen-camera button');
+            btn.style.display = 'none';
+
+            for(let i=1; i<=4; i++) {
+                document.getElementById('photo-status').innerText = `Photo ${i}/4`;
+                await runCountdown();
+                capturePhoto();
+                await new Promise(r => setTimeout(r, 1000));
+            }
+
+            video.srcObject.getTracks().forEach(track => track.stop()); // Stop camera
+            setupSorting();
+            switchScreen('screen-reorder');
+        }
+
+        function runCountdown() {
+            return new Promise(resolve => {
+                let count = 3;
+                const el = document.getElementById('countdown');
+                el.style.display = 'block';
+                el.innerText = count;
+                const int = setInterval(() => {
+                    count--;
+                    if(count > 0) el.innerText = count;
+                    else {
+                        clearInterval(int);
+                        el.style.display = 'none';
+                        resolve();
+                    }
+                }, 1000);
+            });
+        }
+
+        function capturePhoto() {
+            // Flash
+            const flash = document.getElementById('flash');
+            flash.style.opacity = 1;
+            setTimeout(() => flash.style.opacity = 0, 100);
+
+            // Capture Frame
+            const c = document.createElement('canvas');
+            c.width = CONFIG.width;
+            c.height = CONFIG.height;
+            const ctxC = c.getContext('2d');
+
+            // Mirror video draw
+            ctxC.translate(CONFIG.width, 0);
+            ctxC.scale(-1, 1);
+            
+            // Draw Video (Crop center)
+            const vRatio = video.videoWidth / video.videoHeight;
+            const cRatio = CONFIG.width / CONFIG.height;
+            let sx, sy, sw, sh;
+            
+            if(vRatio > cRatio) {
+                sh = video.videoHeight; sw = sh * cRatio;
+                sy = 0; sx = (video.videoWidth - sw)/2;
+            } else {
+                sw = video.videoWidth; sh = sw / cRatio;
+                sx = 0; sy = (video.videoHeight - sh)/2;
+            }
+            ctxC.drawImage(video, sx, sy, sw, sh, 0, 0, CONFIG.width, CONFIG.height);
+
+            // Draw Idol if exists (Idol is NOT mirrored relative to the frame to look correct next to user)
+            // But since we just mirrored the context for the video, we must un-mirror for the idol image so it appears correctly
+            if(state.idolImg) {
+                ctxC.scale(-1, 1); // Flip back
+                ctxC.translate(-CONFIG.width, 0); // Move back
+                
+                // Draw Idol at bottom right (relative to unmirrored canvas)
+                const iH = CONFIG.height; 
+                const iW = (state.idolImg.width / state.idolImg.height) * iH;
+                // Position idol on the Right side
+                ctxC.drawImage(state.idolImg, CONFIG.width - iW * 0.8, CONFIG.height - iH * 0.8, iW * 0.8, iH * 0.8);
+            }
+
+            state.photos.push(c);
+        }
+
+        /** SORTING **/
+        let swapSelection = null;
+
+        function setupSorting() {
+            const grid = document.getElementById('sort-grid');
+            grid.innerHTML = '';
+            state.order = [0,1,2,3];
+            renderSortGrid();
+        }
+
+        function renderSortGrid() {
+            const grid = document.getElementById('sort-grid');
+            grid.innerHTML = '';
+            state.order.forEach((photoIndex, visualIndex) => {
+                const div = document.createElement('div');
+                div.className = 'photo-slot';
+                if(swapSelection === visualIndex) div.classList.add('selected-swap');
+                
+                const img = document.createElement('img');
+                img.src = state.photos[photoIndex].toDataURL();
+                
+                const badge = document.createElement('div');
+                badge.className = 'slot-badge';
+                badge.innerText = `#${visualIndex + 1}`;
+
+                div.appendChild(img);
+                div.appendChild(badge);
+                div.onclick = () => handleSwap(visualIndex);
+                grid.appendChild(div);
+            });
+        }
+
+        function handleSwap(index) {
+            if(swapSelection === null) {
+                swapSelection = index;
+            } else {
+                // Swap logic
+                const temp = state.order[swapSelection];
+                state.order[swapSelection] = state.order[index];
+                state.order[index] = temp;
+                swapSelection = null;
+            }
+            renderSortGrid();
+        }
+
+        function finishSorting() {
+            switchScreen('screen-edit');
+            renderFinalCanvas();
+        }
+
+        /** CANVAS EDITING CORE **/
+        function renderFinalCanvas(skipBackground = false) {
+            // Setup Dimensions: 1 Column strip
+            const stripW = CONFIG.width + (CONFIG.gap * 2);
+            const stripH = (CONFIG.height * 4) + (CONFIG.gap * 5) + CONFIG.bottomSpace;
+
+            canvas.width = stripW;
+            canvas.height = stripH;
+
+            // Background
+            ctx.fillStyle = state.frame;
+            ctx.fillRect(0,0, stripW, stripH);
+
+            // Draw Photos based on Order
+            state.order.forEach((pIdx, i) => {
+                const y = CONFIG.gap + (i * (CONFIG.height + CONFIG.gap));
+                ctx.drawImage(state.photos[pIdx], CONFIG.gap, y, CONFIG.width, CONFIG.height);
+                
+                // Photo border
+                ctx.strokeStyle = "rgba(0,0,0,0.1)";
+                ctx.lineWidth = 2;
+                ctx.strokeRect(CONFIG.gap, y, CONFIG.width, CONFIG.height);
+            });
+
+            // Date
+            ctx.fillStyle = "#888";
+            ctx.font = "bold 30px Quicksand";
+            ctx.textAlign = "center";
+            ctx.fillText(new Date().toLocaleDateString(), stripW/2, stripH - 50);
+
+            // Draw Objects (Stickers/Text)
+            state.canvasObjects.forEach((obj, i) => {
+                ctx.save();
+                ctx.translate(obj.x, obj.y);
+                ctx.rotate(obj.rotation * Math.PI / 180);
+                ctx.scale(obj.scale, obj.scale);
+
+                if(obj.type === 'text') {
+                    ctx.font = "bold 60px Quicksand";
+                    ctx.fillStyle = obj.color;
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+                    ctx.fillText(obj.text, 0, 0);
+                    // Approximation for hit detection
+                    obj.width = ctx.measureText(obj.text).width;
+                    obj.height = 60; 
+                } else if(obj.type === 'img') {
+                    ctx.drawImage(obj.img, -obj.width/2, -obj.height/2, obj.width, obj.height);
+                } else if (obj.type === 'draw') {
+                    // This is handled by a separate layer usually, but for simplicity we draw lines here? 
+                    // No, free draw is hard to manage as objects. 
+                    // To keep it simple, free drawing burns into a separate layer or we treat strokes as path objects.
+                    // For this simple app, drawing will happen directly on context on top.
+                }
+
+                // Selection Box
+                if(i === state.activeObjIndex) {
+                    ctx.strokeStyle = varToHex('--primary');
+                    ctx.lineWidth = 4 / obj.scale;
+                    ctx.setLineDash([10, 5]);
+                    ctx.strokeRect(-obj.width/2 - 10, -obj.height/2 - 10, obj.width + 20, obj.height + 20);
+                }
+
+                ctx.restore();
+            });
+
+            // Re-draw drawing paths (Freehand)
+            // Note: In a robust app, drawing would be separate. Here we assume drawing happens "on top" and isn't movable objects.
+            // Implemented via a secondary transparent canvas overlay? No, let's keep it simple: Drawing burns to canvas?
+            // Let's implement Drawing as "Path Objects" to allow redraw.
+            state.canvasObjects.forEach(obj => {
+                if(obj.type === 'path') {
+                    ctx.beginPath();
+                    ctx.strokeStyle = obj.color;
+                    ctx.lineWidth = 5;
+                    ctx.lineCap = 'round';
+                    ctx.moveTo(obj.points[0].x, obj.points[0].y);
+                    for(let p of obj.points) ctx.lineTo(p.x, p.y);
+                    ctx.stroke();
+                }
+            });
+        }
+
+        /** OBJECT MANIPULATION **/
+        function addText() {
+            const text = prompt("Enter text:", "Cute!");
+            if(text) {
+                state.canvasObjects.push({
+                    type: 'text', text: text, color: '#ff5c8d',
+                    x: canvas.width/2, y: canvas.height/2,
+                    scale: 1, rotation: 0, width: 100, height: 50
+                });
+                state.activeObjIndex = state.canvasObjects.length - 1;
+                renderFinalCanvas();
+                updateControls();
+            }
+        }
+
+        function addStickerFromUpload(e) {
+            const file = e.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                const img = new Image();
+                img.onload = () => {
+                    const aspect = img.width / img.height;
+                    const baseSize = 200;
+                    state.canvasObjects.push({
+                        type: 'img', img: img,
+                        x: canvas.width/2, y: canvas.height/2,
+                        scale: 1, rotation: 0,
+                        width: baseSize, height: baseSize / aspect
+                    });
+                    state.activeObjIndex = state.canvasObjects.length - 1;
+                    renderFinalCanvas();
+                    updateControls();
+                };
+                img.src = evt.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function updateActiveObject(prop, val) {
+            if(state.activeObjIndex === -1) return;
+            state.canvasObjects[state.activeObjIndex][prop] = parseFloat(val);
+            renderFinalCanvas();
+        }
+
+        function updateControls() {
+            const controls = document.getElementById('controls-area');
+            if(state.activeObjIndex !== -1 && state.canvasObjects[state.activeObjIndex].type !== 'path') {
+                controls.style.opacity = 1;
+                controls.style.pointerEvents = 'auto';
+                const obj = state.canvasObjects[state.activeObjIndex];
+                document.getElementById('scale-slider').value = obj.scale;
+                document.getElementById('rotate-slider').value = obj.rotation;
+            } else {
+                controls.style.opacity = 0.5;
+                controls.style.pointerEvents = 'none';
+            }
+        }
+
+        /* --- TOUCH/MOUSE EVENTS FOR CANVAS --- */
+        let isDragging = false;
+        let lastX, lastY;
+        let currentPath = [];
+
+        function setupCanvasInteraction() {
+            // Support both mouse and touch
+            ['mousedown', 'touchstart'].forEach(evt => canvas.addEventListener(evt, startInteract, {passive: false}));
+            ['mousemove', 'touchmove'].forEach(evt => canvas.addEventListener(evt, moveInteract, {passive: false}));
+            ['mouseup', 'touchend'].forEach(evt => canvas.addEventListener(evt, endInteract));
+        }
+
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+
+        function startInteract(e) {
+            e.preventDefault();
+            const pos = getPos(e);
+            
+            if(state.isDrawing) {
+                isDragging = true;
+                currentPath = [{x: pos.x, y: pos.y}];
+                return;
+            }
+
+            // Hit Detection (Simple box check reversed)
+            let hit = -1;
+            for(let i = state.canvasObjects.length-1; i >= 0; i--) {
+                const obj = state.canvasObjects[i];
+                if(obj.type === 'path') continue; // Don't select drawings
+                // Very basic distance check for UX simplicity
+                const dist = Math.hypot(pos.x - obj.x, pos.y - obj.y);
+                if(dist < (Math.max(obj.width, obj.height) * obj.scale) / 2) {
+                    hit = i;
+                    break;
+                }
+            }
+
+            if(hit !== -1) {
+                state.activeObjIndex = hit;
+                isDragging = true;
+                lastX = pos.x;
+                lastY = pos.y;
+                updateControls();
+            } else {
+                state.activeObjIndex = -1;
+                updateControls();
+            }
+            renderFinalCanvas();
+        }
+
+        function moveInteract(e) {
+            e.preventDefault();
+            if(!isDragging) return;
+            const pos = getPos(e);
+
+            if(state.isDrawing) {
+                currentPath.push({x: pos.x, y: pos.y});
+                // Live draw feedback
+                ctx.beginPath();
+                ctx.strokeStyle = state.penColor;
+                ctx.lineWidth = 5;
+                ctx.lineCap = 'round';
+                ctx.moveTo(currentPath[currentPath.length-2].x, currentPath[currentPath.length-2].y);
+                ctx.lineTo(pos.x, pos.y);
+                ctx.stroke();
+                return;
+            }
+
+            if(state.activeObjIndex !== -1) {
+                const dx = pos.x - lastX;
+                const dy = pos.y - lastY;
+                state.canvasObjects[state.activeObjIndex].x += dx;
+                state.canvasObjects[state.activeObjIndex].y += dy;
+                lastX = pos.x;
+                lastY = pos.y;
+                renderFinalCanvas();
+            }
+        }
+
+        function endInteract() {
+            if(state.isDrawing && isDragging) {
+                state.canvasObjects.push({type: 'path', points: currentPath, color: state.penColor});
+                renderFinalCanvas();
+            }
+            isDragging = false;
+        }
+
+        function toggleDrawMode() {
+            state.isDrawing = !state.isDrawing;
+            const btn = document.getElementById('btn-draw');
+            btn.style.background = state.isDrawing ? '#ffe6eb' : '#fff';
+            state.activeObjIndex = -1; // Deselect objects
+            renderFinalCanvas();
+        }
+
+        function saveImage() {
+            // Deselect everything before saving
+            state.activeObjIndex = -1;
+            renderFinalCanvas();
+            const link = document.createElement('a');
+            link.download = 'k-booth-memory.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        /* --- UTILS --- */
+        function switchScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        function varToHex(v) {
+            return getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+        }
+
+        // Run
+        init();
+
+    </script>
+</body>
+</html>

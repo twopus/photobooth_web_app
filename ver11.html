@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cloud Studio Pro - Deluxe</title>
+    <style>
+        /* IMPORT FONTS - Force swap for immediate loading */
+        @import url('https://fonts.googleapis.com/css2?family=Bangers&family=Pacifico&family=Playfair+Display:wght@700&family=Quicksand:wght@500;700&family=Roboto+Mono:wght@500&display=swap');
+
+        :root {
+            --bg-room: #1a1a1a;
+            --machine-shell: #fdfdfd;
+            --accent: #ffb7b2; 
+            --accent-btn: #ff9e99;
+            --studio-light: #ffffff;
+            --delete-red: #ff6b6b;
+        }
+
+        * { box-sizing: border-box; touch-action: none; user-select: none; -webkit-user-select: none; }
+        body {
+            margin: 0; height: 100vh; background-color: var(--bg-room);
+            font-family: 'Quicksand', sans-serif; display: flex; justify-content: center; align-items: center;
+            background-image: radial-gradient(circle at 50% 30%, #333 0%, transparent 70%);
+            overflow: hidden;
+        }
+
+        .booth-structure { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 500px; height: 98vh; }
+        .top-light-cap { width: 95%; height: 60px; background: #fff; border-radius: 30px 30px 5px 5px; box-shadow: 0 0 40px var(--studio-light); z-index: 2; }
+        
+        .booth-casing {
+            flex: 1; width: 100%; background: var(--machine-shell);
+            border-radius: 20px; padding: 10px; display: flex; flex-direction: column;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5); border: 8px solid #333;
+        }
+
+        .screen-container { flex: 1; background: #fff; border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; border: 4px solid #222; position: relative; }
+
+        /* VIEWS */
+        .view { flex: 1; display: none; flex-direction: column; position: relative; height: 100%; width: 100%; }
+        .view.active { display: flex; }
+
+        /* START VIEW */
+        .start-view { justify-content: center; align-items: center; background: #fffaf0; }
+        .btn-main { padding: 15px 40px; background: var(--accent-btn); color: white; border: none; border-radius: 30px; font-weight: 700; cursor: pointer; }
+
+        /* CAMERA VIEW */
+        .camera-area { flex: 1; background: #000; position: relative; }
+        video { width: 100%; height: 100%; object-fit: cover; }
+        .mirrored { transform: scaleX(-1); }
+        .countdown { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 8rem; color: white; z-index: 10; font-weight: bold; }
+
+        /* SELECTION VIEW */
+        .select-view { padding: 10px; overflow-y: auto; }
+        .layout-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-bottom: 10px; }
+        .layout-btn { padding: 8px; border: 2px solid #ddd; background: #fff; border-radius: 8px; font-size: 0.7rem; font-weight: bold; cursor: pointer; }
+        .layout-btn.active { border-color: var(--accent); background: #fff0f0; }
+        .thumb-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .thumb { aspect-ratio: 1; background: #eee; border-radius: 5px; overflow: hidden; border: 3px solid transparent; }
+        .thumb.selected { border-color: var(--accent); }
+        .thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* EDITOR VIEW */
+        .canvas-area { flex: 1; display: flex; align-items: center; justify-content: center; background: #f0f0f0; padding: 10px; }
+        canvas { max-width: 100%; max-height: 100%; background: white; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+
+        /* TOOLBARS */
+        .scroll-toolbar {
+            background: #fff; border-top: 2px solid #eee; padding: 10px 5px;
+            display: flex; gap: 10px; overflow-x: auto; white-space: nowrap;
+            -webkit-overflow-scrolling: touch;
+        }
+        .tool-item {
+            display: inline-flex; flex-direction: column; align-items: center;
+            min-width: 70px; cursor: pointer;
+        }
+        .tool-icon { width: 45px; height: 45px; background: #f8f8f8; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 4px; border: 1px solid #ddd; }
+        .tool-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: #666; }
+
+        .context-bar { background: #333; color: white; padding: 8px; display: none; justify-content: space-between; align-items: center; }
+        .context-bar.active { display: flex; }
+        
+        .pattern-thumb { width: 40px; height: 40px; border-radius: 5px; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+
+<div class="booth-structure">
+    <div class="top-light-cap"></div>
+    <div class="booth-casing">
+        <div class="screen-container">
+            
+            <div id="view-start" class="view active start-view">
+                <h1 style="font-family:'Pacifico'; color: var(--accent-btn);">Cloud Studio</h1>
+                <button class="btn-main" onclick="startCamera()">TAP TO START</button>
+            </div>
+
+            <div id="view-camera" class="view">
+                <div class="camera-area">
+                    <video id="video" class="mirrored" autoplay playsinline></video>
+                    <div id="countdown" class="countdown" style="display:none;"></div>
+                </div>
+                <div style="padding:15px; display:flex; justify-content:space-around; align-items:center; background:#fff;">
+                    <div style="width:40px; height:40px; border-radius:50%; border:2px solid #eee; overflow:hidden; position:relative;">
+                        <input type="color" oninput="changeLight(this.value)" style="position:absolute; scale:3; cursor:pointer;">
+                    </div>
+                    <button onclick="triggerCapture()" style="width:60px; height:60px; border-radius:50%; background:var(--accent); border:5px solid #eee;"></button>
+                    <button onclick="toggleFlip()" style="background:none; border:none; font-size:1.5rem;">⇄</button>
+                </div>
+            </div>
+
+            <div id="view-select" class="view select-view">
+                <p style="font-weight:700; font-size:0.8rem; margin:5px 0;">1. CHOOSE LAYOUT</p>
+                <div class="layout-grid" id="layout-options">
+                    <button class="layout-btn" onclick="setLayout(2, 'side')">2 (Side)</button>
+                    <button class="layout-btn" onclick="setLayout(2, 'stack')">2 (Stack)</button>
+                    <button class="layout-btn active" onclick="setLayout(4, 'grid')">4 (Grid)</button>
+                    <button class="layout-btn" onclick="setLayout(4, 'strip')">4 (Strip)</button>
+                </div>
+                <p id="sel-info" style="font-weight:700; font-size:0.8rem; margin:5px 0;">2. SELECT PHOTOS (0/4)</p>
+                <div class="thumb-grid" id="thumb-grid"></div>
+                <button id="btn-go-edit" class="btn-main" style="margin-top:15px; width:100%; opacity:0.5;" onclick="initEditor()">CREATE PHOTO</button>
+            </div>
+
+            <div id="view-edit" class="view">
+                <div id="ctx-bar" class="context-bar">
+                    <select id="f-family" onchange="updateTextProp('fontFamily', this.value)" style="font-size:0.7rem;">
+                        <option value="Quicksand">Quicksand</option>
+                        <option value="Pacifico">Pacifico</option>
+                        <option value="Bangers">Bangers</option>
+                        <option value="Playfair Display">Elegant</option>
+                        <option value="Roboto Mono">Mono</option>
+                    </select>
+                    <input type="color" oninput="updateTextProp('color', this.value)">
+                    <button onclick="deleteObj()" style="background:var(--delete-red); color:white; border:none; border-radius:4px; padding:2px 8px;">Delete</button>
+                </div>
+                <div class="canvas-area">
+                    <canvas id="canvas"></canvas>
+                </div>
+                
+                <div class="scroll-toolbar">
+                    <div class="tool-item">
+                        <div class="tool-icon" style="position:relative; overflow:hidden;">
+                            🖼️ <input type="color" oninput="setFrame('color', this.value)" style="position:absolute; opacity:0; inset:0;">
+                        </div>
+                        <div class="tool-label">Frame</div>
+                    </div>
+                    <div class="tool-item" onclick="setFrame('pattern', 'dots')"><div class="tool-icon" style="background-image:radial-gradient(#ccc 10%, transparent 10%); background-size:8px 8px;"></div><div class="tool-label">Dots</div></div>
+                    <div class="tool-item" onclick="setFrame('pattern', 'stripes')"><div class="tool-icon" style="background: repeating-linear-gradient(45deg, #eee, #eee 5px, #ddd 5px, #ddd 10px);"></div><div class="tool-label">Stripes</div></div>
+                    <div class="tool-item" onclick="addText()"><div class="tool-icon">Aa</div><div class="tool-label">Text</div></div>
+                    <label class="tool-item">
+                        <div class="tool-icon">📷</div><div class="tool-label">Photo</div>
+                        <input type="file" hidden accept="image/*" onchange="addProp(event, 'file')">
+                    </label>
+                    <div class="tool-item" onclick="addProp('🎀', 'sticker')"><div class="tool-icon">🎀</div><div class="tool-label">Bow</div></div>
+                    <div class="tool-item" onclick="addProp('🐱', 'sticker')"><div class="tool-icon">🐱</div><div class="tool-label">Kitty</div></div>
+                    <div class="tool-item" onclick="addProp('🍓', 'sticker')"><div class="tool-icon">🍓</div><div class="tool-label">Berry</div></div>
+                    <div class="tool-item" onclick="addProp('⭐', 'sticker')"><div class="tool-icon">⭐</div><div class="tool-label">Star</div></div>
+                    <div class="tool-item" onclick="addProp('💖', 'sticker')"><div class="tool-icon">💖</div><div class="tool-label">Heart</div></div>
+                </div>
+
+                <div style="padding:10px; display:flex; justify-content:space-between; background:white;">
+                    <button onclick="location.reload()" style="background:none; border:none; color:#999;">Reset</button>
+                    <button onclick="saveImage()" style="background:#333; color:white; border:none; padding:8px 20px; border-radius:20px;">Save ⬇</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    const state = {
+        photos: [], 
+        selected: [], 
+        target: 4, 
+        mode: 'grid', 
+        bg: '#ffffff', 
+        pattern: null,
+        objs: [], 
+        active: null, 
+        mirror: true
+    };
+    const cvs = document.getElementById('canvas');
+    const ctx = cvs.getContext('2d');
+    const video = document.getElementById('video');
+
+    function changeLight(c) { document.documentElement.style.setProperty('--studio-light', c); }
+    function toggleFlip() { state.mirror = !state.mirror; video.classList.toggle('mirrored', state.mirror); }
+
+    async function startCamera() {
+        try {
+            video.srcObject = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+            switchView('view-camera');
+        } catch(e) { alert("Camera Error"); }
+    }
+
+    function triggerCapture() {
+        if(state.photos.length >= 8) return;
+        let c = 3; const el = document.getElementById('countdown');
+        el.style.display = 'block'; el.innerText = c;
+        const timer = setInterval(() => {
+            c--; if(c>0) el.innerText = c;
+            else { clearInterval(timer); el.style.display='none'; snap(); }
+        }, 800);
+    }
+
+    function snap() {
+        const c = document.createElement('canvas');
+        c.width = 640; c.height = 480;
+        const x = c.getContext('2d');
+        if(state.mirror) { x.translate(640,0); x.scale(-1,1); }
+        x.drawImage(video, 0, 0, 640, 480);
+        state.photos.push(c);
+        if(state.photos.length === 8) finishCam();
+        else updateSelectionUI();
+    }
+
+    function finishCam() { 
+        if(video.srcObject) video.srcObject.getTracks().forEach(t=>t.stop());
+        updateSelectionUI();
+        switchView('view-select');
+    }
+
+    function setLayout(n, m) {
+        state.target = n; state.mode = m; state.selected = [];
+        document.querySelectorAll('.layout-btn').forEach(b => b.classList.remove('active'));
+        event.target.classList.add('active');
+        updateSelectionUI();
+    }
+
+    function updateSelectionUI() {
+        const grid = document.getElementById('thumb-grid'); grid.innerHTML = '';
+        state.photos.forEach((p, i) => {
+            const d = document.createElement('div'); d.className = `thumb ${state.selected.includes(i)?'selected':''}`;
+            const im = new Image(); im.src = p.toDataURL();
+            d.onclick = () => {
+                if(state.selected.includes(i)) state.selected = state.selected.filter(x => x!==i);
+                else if(state.selected.length < state.target) state.selected.push(i);
+                updateSelectionUI();
+            };
+            d.appendChild(im); grid.appendChild(d);
+        });
+        document.getElementById('sel-info').innerText = `2. SELECT PHOTOS (${state.selected.length}/${state.target})`;
+        const btn = document.getElementById('btn-go-edit');
+        btn.style.opacity = state.selected.length === state.target ? 1 : 0.5;
+    }
+
+    function initEditor() {
+        if(state.selected.length !== state.target) return;
+        switchView('view-edit');
+        cvs.width = 800; cvs.height = 1200;
+        draw();
+        setupTouch();
+    }
+
+    function draw() {
+        ctx.fillStyle = state.bg;
+        ctx.fillRect(0,0,800,1200);
+
+        if(state.pattern === 'dots') {
+            ctx.fillStyle = "rgba(0,0,0,0.1)";
+            for(let i=0; i<800; i+=20) for(let j=0; j<1200; j+=20) { ctx.beginPath(); ctx.arc(i,j,2,0,7); ctx.fill(); }
+        } else if(state.pattern === 'stripes') {
+            ctx.strokeStyle = "rgba(0,0,0,0.05)"; ctx.lineWidth = 10;
+            for(let i=-1200; i<800; i+=30) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i+1200,1200); ctx.stroke(); }
+        }
+
+        const imgs = state.selected.map(i => state.photos[i]);
+        const g = 30;
+
+        if(state.mode === 'side') {
+            const w = 350, h = 466;
+            imgs.forEach((img, i) => ctx.drawImage(img, 40 + i*(w+20), 367, w, h));
+        } else if(state.mode === 'stack') {
+            const w = 500, h = 375;
+            imgs.forEach((img, i) => ctx.drawImage(img, 150, 200 + i*(h+40), w, h));
+        } else if(state.mode === 'grid') {
+            const w = 355, h = 266;
+            imgs.forEach((img, i) => {
+                const r = Math.floor(i/2), c = i%2;
+                ctx.drawImage(img, g+c*(w+g), 300+r*(h+g), w, h);
+            });
+        } else if(state.mode === 'strip') {
+            const w = 500, h = 250;
+            imgs.forEach((img, i) => ctx.drawImage(img, 150, 70 + i*(h+25), w, h));
+        }
+
+        state.objs.forEach(o => {
+            ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(o.r); ctx.scale(o.s, o.s);
+            if(o.type === 'text') {
+                ctx.font = `bold 60px "${o.fontFamily}"`; ctx.fillStyle = o.color;
+                ctx.textAlign = 'center'; ctx.fillText(o.content, 0, 0);
+            } else {
+                ctx.drawImage(o.img, -75, -75, 150, 150);
+            }
+            if(state.active === o) { ctx.strokeStyle = '#ffb7b2'; ctx.lineWidth = 4; ctx.strokeRect(-80, -80, 160, 160); }
+            ctx.restore();
+        });
+        document.getElementById('ctx-bar').classList.toggle('active', !!state.active);
+    }
+
+    function setFrame(type, val) {
+        if(type === 'color') { state.bg = val; state.pattern = null; }
+        else state.pattern = val;
+        draw();
+    }
+
+    function addText() {
+        const t = prompt("Text:");
+        if(t) {
+            state.objs.push({ type:'text', content:t, x:400, y:600, r:0, s:1, fontFamily:'Quicksand', color:'#000' });
+            state.active = state.objs[state.objs.length-1];
+            draw();
+        }
+    }
+
+    function addProp(val, type) {
+        const o = { type:'img', x:400, y:600, r:0, s:1, img: new Image() };
+        if(type === 'sticker') {
+            const canvasTmp = document.createElement('canvas');
+            canvasTmp.width = 200; canvasTmp.height = 200;
+            const xTmp = canvasTmp.getContext('2d');
+            xTmp.font = "120px serif"; xTmp.textAlign = "center"; xTmp.textBaseline = "middle";
+            xTmp.fillText(val, 100, 100);
+            o.img.src = canvasTmp.toDataURL();
+        } else {
+            const f = val.target.files[0];
+            o.img.src = URL.createObjectURL(f);
+        }
+        o.img.onload = () => { state.objs.push(o); state.active = o; draw(); };
+    }
+
+    function updateTextProp(p, v) { if(state.active) { state.active[p] = v; draw(); } }
+    function deleteObj() { if(state.active) { state.objs = state.objs.filter(x => x!==state.active); state.active = null; draw(); } }
+
+    function setupTouch() {
+        let dragging = false;
+        cvs.addEventListener('pointerdown', e => {
+            const rect = cvs.getBoundingClientRect();
+            const px = (e.clientX - rect.left) * (800/rect.width);
+            const py = (e.clientY - rect.top) * (1200/rect.height);
+            state.active = state.objs.findLast(o => Math.hypot(o.x - px, o.y - py) < 80);
+            if(state.active) dragging = true;
+            draw();
+        });
+        cvs.addEventListener('pointermove', e => {
+            if(!dragging || !state.active) return;
+            const rect = cvs.getBoundingClientRect();
+            state.active.x = (e.clientX - rect.left) * (800/rect.width);
+            state.active.y = (e.clientY - rect.top) * (1200/rect.height);
+            draw();
+        });
+        window.addEventListener('pointerup', () => dragging = false);
+    }
+
+    function saveImage() {
+        state.active = null; draw();
+        const link = document.createElement('a');
+        link.download = 'studio-photo.png';
+        link.href = cvs.toDataURL();
+        link.click();
+    }
+
+    function switchView(id) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+</script>
+</body>
+</html>

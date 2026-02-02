@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cloud Studio Pro</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bangers&family=Pacifico&family=Playfair+Display:wght@700&family=Quicksand:wght@500;700&family=Roboto+Mono:wght@500&display=swap');
+
+        :root {
+            --bg-room: #121212;
+            --machine-shell: #f0f0f0;
+            --accent: #ffb7b2; 
+            --accent-btn: #ff9e99;
+            --studio-light: #ffffff;
+            --light-intensity: 1;
+            --delete-red: #ff6b6b;
+        }
+
+        * { box-sizing: border-box; touch-action: none; user-select: none; -webkit-user-select: none; }
+
+        body {
+            margin: 0; height: 100vh; background-color: var(--bg-room);
+            font-family: 'Quicksand', sans-serif; display: flex; justify-content: center; align-items: center;
+            background-image: radial-gradient(circle at 50% 30%, var(--studio-light) 0%, transparent 60%), radial-gradient(#222 15%, transparent 16%);
+            background-size: 100% 100%, 40px 40px; overflow: hidden;
+        }
+
+        /* --- BOOTH STRUCTURE --- */
+        .booth-structure { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 520px; height: 98vh; position: relative; }
+        
+        .top-light-cap {
+            width: 100%; height: 80px; background: #fff; border-radius: 40px 40px 10px 10px; margin-bottom: 10px; z-index: 2;
+            box-shadow: 0 0 calc(30px * var(--light-intensity)) var(--studio-light);
+            border: 4px solid #fff; position: relative;
+        }
+
+        .booth-casing { flex: 1; width: 100%; background: var(--machine-shell); border-radius: 30px; padding: 15px; display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,0.5); position: relative; }
+        
+        .main-stage { flex: 1; display: flex; gap: 15px; position: relative; height: 100%; overflow: hidden; }
+
+        .side-light {
+            width: 25px; background: var(--studio-light); border-radius: 20px;
+            box-shadow: 0 0 calc(20px * var(--light-intensity)) var(--studio-light);
+            opacity: var(--light-intensity); transition: all 0.2s ease;
+        }
+
+        .screen-container { flex: 1; background: #fff; border-radius: 20px; position: relative; overflow: hidden; display: flex; flex-direction: column; border: 6px solid #333; }
+
+        /* --- VIEWS --- */
+        .view { flex: 1; display: none; flex-direction: column; position: relative; background: #fff; width: 100%; height: 100%; }
+        .view.active { display: flex; }
+
+        .start-view { justify-content: center; align-items: center; background: radial-gradient(circle at center, #fff 0%, #fff0f5 100%); }
+        .logo-cloud { font-size: 5rem; margin-bottom: 10px; animation: float 3s infinite ease-in-out; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+        
+        .btn-main { padding: 16px 50px; background: var(--accent-btn); color: white; border: none; border-radius: 50px; font-size: 1.1rem; font-weight: 700; cursor: pointer; }
+
+        .camera-area { flex: 1; position: relative; background: #000; overflow: hidden; }
+        video { width: 100%; height: 100%; object-fit: cover; }
+        .mirrored { transform: scaleX(-1); }
+
+        .cam-ui { height: 160px; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px; gap: 8px; border-top: 2px solid #eee; }
+        
+        .intensity-slider { width: 80%; margin: 5px 0; accent-color: var(--accent-btn); }
+
+        .controls-row { display: flex; align-items: center; gap: 20px; width: 100%; justify-content: center; }
+        .shutter-ring { width: 70px; height: 70px; border-radius: 50%; border: 4px solid var(--accent); padding: 4px; cursor: pointer; }
+        .shutter-inner { width: 100%; height: 100%; background: var(--accent); border-radius: 50%; }
+
+        /* Editor Toolbar */
+        .toolbar { background: #fff; padding: 10px; border-top: 1px solid #eee; display: flex; flex-direction: column; gap: 10px; }
+        .tool-section { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px; align-items: center; }
+        .tool-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 60px; height: 60px; border: 1px solid #eee; border-radius: 10px; background: white; cursor: pointer; }
+        .tool-btn span.label { font-size: 0.6rem; color: #666; font-weight: 700; text-transform: uppercase; margin-top: 4px;}
+
+        .context-bar { background: #f8f8f8; padding: 8px; border-radius: 8px; display: none; align-items: center; justify-content: space-between; gap: 10px; }
+        .context-bar.active { display: flex; }
+        .font-select { padding: 5px; border-radius: 5px; border: 1px solid #ccc; font-size: 0.8rem; flex: 1; }
+        canvas { max-width: 100%; max-height: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
+
+        .grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 10px; overflow-y: auto; }
+        .thumb-wrap { aspect-ratio: 1; border-radius: 8px; overflow: hidden; border: 3px solid transparent; opacity: 0.6; }
+        .thumb-wrap.selected { border-color: var(--accent); opacity: 1; }
+        .thumb-wrap img { width: 100%; height: 100%; object-fit: cover; }
+    </style>
+</head>
+<body>
+
+<div class="booth-structure">
+    <div class="top-light-cap"></div>
+    <div class="booth-casing">
+        <div class="main-stage">
+            <div id="left-light" class="side-light"></div>
+            <div class="screen-container">
+                
+                <div id="view-start" class="view active start-view">
+                    <div class="logo-cloud">☁️</div>
+                    <h1>Cloud Studio</h1>
+                    <button class="btn-main" onclick="startCamera()">Enter Booth</button>
+                </div>
+
+                <div id="view-camera" class="view">
+                    <div class="camera-area">
+                        <video id="video" class="mirrored" autoplay playsinline></video>
+                        <div id="countdown" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:8rem; color:white; display:none; font-weight:700;">3</div>
+                    </div>
+                    <div class="cam-ui">
+                        <input type="range" class="intensity-slider" min="0" max="1" step="0.1" value="1" oninput="updateIntensity(this.value)">
+                        <div class="controls-row">
+                            <input type="color" oninput="changeLightColor(this.value)" value="#ffffff" style="width:40px; height:40px; border-radius:50%; border:none; cursor:pointer;">
+                            <div class="shutter-ring" onclick="triggerCapture()"><div class="shutter-inner"></div></div>
+                            <button onclick="finishSession()" style="background:#444; color:white; border:none; border-radius:15px; padding:8px 12px; font-weight:bold;">Next</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-select" class="view">
+                    <h4 style="text-align:center;">Select 4 Photos for Life4Cut</h4>
+                    <div class="grid-container" id="thumb-grid"></div>
+                    <button id="btn-confirm" class="btn-main" style="margin:10px; opacity:0.5; pointer-events:none;" onclick="goToEditor()">Create Strip</button>
+                </div>
+
+                <div id="view-edit" class="view">
+                    <div style="flex:1; display:flex; align-items:center; justify-content:center; padding:10px; background:#eee;">
+                        <canvas id="canvas"></canvas>
+                    </div>
+                    
+                    <div class="toolbar">
+                        <div id="context-bar" class="context-bar">
+                            <select id="font-family" class="font-select" onchange="updateActiveFont(this.value)">
+                                <option value="Quicksand">Standard</option>
+                                <option value="Pacifico">Handwritten</option>
+                                <option value="Bangers">Comic</option>
+                                <option value="Playfair Display">Elegant</option>
+                            </select>
+                            <input type="color" id="text-color" oninput="updateActiveColor(this.value)" style="width:30px; height:30px;">
+                            <button onclick="deleteActiveObject()" style="background:var(--delete-red); color:white; border:none; padding:5px 10px; border-radius:5px;">🗑</button>
+                        </div>
+
+                        <div class="tool-section">
+                            <div class="tool-btn" style="position:relative;">
+                                <span>🎨</span><span class="label">Frame</span>
+                                <input type="color" value="#ffffff" style="position:absolute; inset:0; opacity:0; cursor:pointer;" oninput="setBgColor(this.value)">
+                            </div>
+                            <button class="tool-btn" onclick="addText()"><span>Aa</span><span class="label">Text</span></button>
+                            <button class="tool-btn" onclick="addProp('🎀')"><span>🎀</span><span class="label">Bow</span></button>
+                            <button class="tool-btn" onclick="addProp('✨')"><span>✨</span><span class="label">Glow</span></button>
+                            <button class="tool-btn" onclick="addProp('🌸')"><span>🌸</span><span class="label">Flower</span></button>
+                            <button class="tool-btn" onclick="addProp('🐱')"><span>🐱</span><span class="label">Kitty</span></button>
+                            <label class="tool-btn">
+                                <span>📷</span><span class="label">Add Pic</span>
+                                <input type="file" hidden accept="image/*" onchange="addPhotoSticker(event)">
+                            </label>
+                        </div>
+                        <button onclick="download()" class="btn-main" style="width:100%;">Save Photo</button>
+                    </div>
+                </div>
+
+            </div>
+            <div id="right-light" class="side-light"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const CONFIG = { w: 500, h: 1500, gap: 20 }; // Vertical Life4Cut dimensions
+    let state = {
+        photos: [], 
+        selectedIndices: [], 
+        bgColor: '#ffffff',
+        objects: [], 
+        activeObj: null
+    };
+
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    function updateIntensity(v) {
+        document.documentElement.style.setProperty('--light-intensity', v);
+    }
+
+    function changeLightColor(c) {
+        document.documentElement.style.setProperty('--studio-light', c);
+    }
+
+    async function startCamera() {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+        video.srcObject = stream;
+        document.getElementById('view-start').classList.remove('active');
+        document.getElementById('view-camera').classList.add('active');
+    }
+
+    function triggerCapture() {
+        let count = 3;
+        const el = document.getElementById('countdown');
+        el.style.display = 'block';
+        const timer = setInterval(() => {
+            el.innerText = count;
+            if(count === 0) {
+                clearInterval(timer);
+                el.style.display = 'none';
+                snap();
+            }
+            count--;
+        }, 800);
+    }
+
+    function snap() {
+        const c = document.createElement('canvas');
+        c.width = 640; c.height = 480;
+        const cx = c.getContext('2d');
+        cx.translate(640,0); cx.scale(-1,1);
+        cx.drawImage(video, 0, 0, 640, 480);
+        state.photos.push(c);
+        if(state.photos.length >= 8) finishSession();
+    }
+
+    function finishSession() {
+        if(video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
+        document.getElementById('view-camera').classList.remove('active');
+        document.getElementById('view-select').classList.add('active');
+        renderThumbs();
+    }
+
+    function renderThumbs() {
+        const grid = document.getElementById('thumb-grid');
+        grid.innerHTML = '';
+        state.photos.forEach((p, i) => {
+            const w = document.createElement('div');
+            w.className = `thumb-wrap ${state.selectedIndices.includes(i) ? 'selected' : ''}`;
+            const img = new Image(); img.src = p.toDataURL();
+            w.appendChild(img);
+            w.onclick = () => {
+                if(state.selectedIndices.includes(i)) {
+                    state.selectedIndices = state.selectedIndices.filter(x => x !== i);
+                } else if(state.selectedIndices.length < 4) {
+                    state.selectedIndices.push(i);
+                }
+                renderThumbs();
+                const btn = document.getElementById('btn-confirm');
+                btn.style.opacity = state.selectedIndices.length === 4 ? '1' : '0.5';
+                btn.style.pointerEvents = state.selectedIndices.length === 4 ? 'auto' : 'none';
+            };
+            grid.appendChild(w);
+        });
+    }
+
+    function goToEditor() {
+        document.getElementById('view-select').classList.remove('active');
+        document.getElementById('view-edit').classList.add('active');
+        canvas.width = CONFIG.w; canvas.height = CONFIG.h;
+        renderCanvas();
+        setupTouch();
+    }
+
+    function renderCanvas() {
+        ctx.fillStyle = state.bgColor;
+        ctx.fillRect(0, 0, CONFIG.w, CONFIG.h);
+
+        const imgs = state.selectedIndices.map(i => state.photos[i]);
+        const slotH = (CONFIG.h - (CONFIG.gap * 5)) / 4;
+        const slotW = CONFIG.w - (CONFIG.gap * 2);
+
+        imgs.forEach((img, i) => {
+            const y = CONFIG.gap + i * (slotH + CONFIG.gap);
+            ctx.drawImage(img, CONFIG.gap, y, slotW, slotH);
+        });
+
+        state.objects.forEach(obj => {
+            ctx.save();
+            ctx.translate(obj.x, obj.y); ctx.rotate(obj.rot); ctx.scale(obj.scale, obj.scale);
+            if(obj.type === 'text') {
+                ctx.font = `bold 50px "${obj.fontFamily}"`;
+                ctx.fillStyle = obj.color; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(obj.content, 0, 0);
+            } else if(obj.type === 'prop') {
+                ctx.font = '80px Quicksand'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(obj.content, 0, 0);
+            } else if(obj.type === 'img') {
+                ctx.drawImage(obj.img, -75, -75, 150, 150);
+            }
+            if(state.activeObj === obj) {
+                ctx.strokeStyle = '#ffb7b2'; ctx.lineWidth = 3;
+                ctx.strokeRect(-80, -80, 160, 160);
+            }
+            ctx.restore();
+        });
+        updateToolbarUI();
+    }
+
+    function addText() {
+        const t = prompt("Enter text:");
+        if(t) {
+            const obj = { type:'text', content:t, x:250, y:750, rot:0, scale:1, fontFamily:'Quicksand', color:'#333333' };
+            state.objects.push(obj); state.activeObj = obj; renderCanvas();
+        }
+    }
+
+    function addProp(p) {
+        const obj = { type:'prop', content:p, x:250, y:750, rot:0, scale:1 };
+        state.objects.push(obj); state.activeObj = obj; renderCanvas();
+    }
+
+    function addPhotoSticker(e) {
+        const file = e.target.files[0];
+        if(!file) return;
+        const img = new Image();
+        img.onload = () => {
+            const obj = { type:'img', img: img, x:250, y:750, rot:0, scale:1 };
+            state.objects.push(obj); state.activeObj = obj; renderCanvas();
+        };
+        img.src = URL.createObjectURL(file);
+    }
+
+    function updateActiveFont(f) { if(state.activeObj && state.activeObj.type === 'text') { state.activeObj.fontFamily = f; renderCanvas(); } }
+    function updateActiveColor(c) { if(state.activeObj && state.activeObj.type === 'text') { state.activeObj.color = c; renderCanvas(); } }
+    function deleteActiveObject() { if(state.activeObj) { state.objects = state.objects.filter(o => o !== state.activeObj); state.activeObj = null; renderCanvas(); } }
+    function setBgColor(c) { state.bgColor = c; renderCanvas(); }
+
+    function updateToolbarUI() {
+        const bar = document.getElementById('context-bar');
+        if(state.activeObj && state.activeObj.type === 'text') {
+            bar.style.display = 'flex';
+            document.getElementById('font-family').value = state.activeObj.fontFamily;
+            document.getElementById('text-color').value = state.activeObj.color;
+        } else if (state.activeObj) {
+            bar.style.display = 'flex';
+            document.getElementById('font-family').parentElement.style.display = 'none'; // hide text specific
+        } else {
+            bar.style.display = 'none';
+        }
+    }
+
+    function setupTouch() {
+        canvas.addEventListener('pointerdown', e => {
+            const rect = canvas.getBoundingClientRect();
+            const px = (e.clientX - rect.left) * (CONFIG.w/rect.width);
+            const py = (e.clientY - rect.top) * (CONFIG.h/rect.height);
+            let hit = null;
+            state.objects.forEach(o => { if(Math.hypot(o.x-px, o.y-py) < 100) hit = o; });
+            state.activeObj = hit;
+            if(hit) {
+                const move = (me) => {
+                    const r2 = canvas.getBoundingClientRect();
+                    state.activeObj.x = (me.clientX - r2.left) * (CONFIG.w/r2.width);
+                    state.activeObj.y = (me.clientY - r2.top) * (CONFIG.h/r2.height);
+                    renderCanvas();
+                };
+                const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
+                window.addEventListener('pointermove', move);
+                window.addEventListener('pointerup', up);
+            }
+            renderCanvas();
+        });
+    }
+
+    function download() {
+        state.activeObj = null; renderCanvas();
+        const a = document.createElement('a'); a.download = 'life4cut.png'; a.href = canvas.toDataURL(); a.click();
+    }
+</script>
+</body>
+</html>

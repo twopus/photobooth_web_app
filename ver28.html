@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Life4Cut Studio</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&display=swap');
+
+        :root {
+            --bg-dark: #1a1a1a;
+            --panel: #f4f4f4;
+            --accent: #ff9fb3; /* Korean Booth Pink */
+            --accent-glow: #ffc2d1;
+            --text: #333;
+            --light-color: #ff9fb3;
+        }
+
+        * { box-sizing: border-box; user-select: none; -webkit-user-select: none; touch-action: none; }
+
+        body {
+            margin: 0; height: 100vh; background: var(--bg-dark);
+            font-family: 'Quicksand', sans-serif;
+            overflow: hidden; display: flex; justify-content: center; align-items: center;
+        }
+
+        /* --- ICONS (Vector) --- */
+        .icon { width: 24px; height: 24px; fill: currentColor; display: block; }
+        
+        /* --- MAIN STRUCTURE --- */
+        .booth-body {
+            position: relative; width: 100%; max-width: 500px; height: 100%;
+            background: var(--panel); display: flex; flex-direction: column;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+        }
+
+        /* --- RIGHT LIGHT STRIP --- */
+        .light-strip-container {
+            position: absolute; right: 0; top: 10%; bottom: 10%; width: 20px;
+            display: flex; align-items: center; justify-content: center; z-index: 100;
+        }
+        .light-pill {
+            width: 100%; height: 100%;
+            background: var(--light-color);
+            border-top-left-radius: 20px; border-bottom-left-radius: 20px;
+            box-shadow: -5px 0 30px var(--light-color), inset 2px 0 5px rgba(255,255,255,0.6);
+            transition: all 0.3s ease;
+        }
+
+        /* --- VIEWPORT MANAGMENT --- */
+        .view { display: none; width: 100%; height: 100%; flex-direction: column; position: relative; }
+        .view.active { display: flex; }
+
+        /* --- START SCREEN --- */
+        .start-screen { justify-content: center; align-items: center; background: #fff; }
+        .logo-area { text-align: center; margin-bottom: 40px; }
+        .logo-area h1 { font-size: 3rem; color: var(--accent); margin: 0; text-shadow: 2px 2px 0px #eee; }
+        .btn-start {
+            background: var(--accent); color: white; border: none; padding: 15px 50px;
+            border-radius: 50px; font-size: 1.5rem; font-weight: bold; cursor: pointer;
+            box-shadow: 0 5px 15px rgba(255, 159, 179, 0.4);
+        }
+
+        /* --- CAMERA SCREEN --- */
+        .camera-screen { background: #000; }
+        .cam-feed-wrap {
+            flex: 1; position: relative; overflow: hidden;
+            display: flex; justify-content: center; align-items: center;
+        }
+        video { 
+            height: 100%; width: auto; 
+            transform: scaleX(-1); /* Default Mirror */
+            filter: var(--cam-filter, none);
+        }
+
+        /* Camera Overlay Controls */
+        .cam-controls {
+            padding: 20px; background: rgba(0,0,0,0.8);
+            display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+            gap: 20px;
+        }
+
+        .btn-circle {
+            width: 50px; height: 50px; border-radius: 50%; background: #333; color: white;
+            border: none; display: flex; justify-content: center; align-items: center; cursor: pointer;
+        }
+        .btn-shutter {
+            width: 70px; height: 70px; border-radius: 50%; background: white;
+            border: 5px solid rgba(255,255,255,0.3); cursor: pointer;
+        }
+        .btn-shutter:active { transform: scale(0.95); }
+
+        .counter-pill {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.5); color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold;
+        }
+
+        /* --- EDITOR SCREEN --- */
+        .editor-screen { background: #e0e0e0; }
+        
+        /* Canvas Area */
+        .canvas-container {
+            flex: 1; display: flex; justify-content: center; align-items: center;
+            padding: 20px; overflow: hidden; background-image: radial-gradient(#ccc 1px, transparent 1px); background-size: 20px 20px;
+        }
+        canvas { 
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2); 
+            max-height: 100%; max-width: 100%; 
+            touch-action: none; 
+        }
+
+        /* Scrollable Toolbar */
+        .toolbar-area {
+            background: white; border-top-left-radius: 20px; border-top-right-radius: 20px;
+            padding: 15px 0; display: flex; flex-direction: column; gap: 10px;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.1); z-index: 200;
+        }
+
+        .scroll-track {
+            display: flex; overflow-x: auto; gap: 10px; padding: 0 20px;
+            scrollbar-width: thin; scrollbar-color: var(--accent) #eee;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        /* Visible Scrollbar for Mobile Styling */
+        .scroll-track::-webkit-scrollbar { height: 6px; }
+        .scroll-track::-webkit-scrollbar-track { background: #eee; border-radius: 3px; }
+        .scroll-track::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 3px; }
+
+        .tool-btn {
+            display: flex; flex-direction: column; align-items: center; gap: 5px;
+            min-width: 60px; background: none; border: 1px solid #eee; border-radius: 10px;
+            padding: 8px; cursor: pointer; color: #666; font-size: 0.7rem; font-weight: bold;
+        }
+        .tool-btn.active { background: #fff0f3; border-color: var(--accent); color: var(--accent); }
+
+        /* Sub-Menus (Colors, Filters) */
+        .sub-menu { display: none; padding: 0 20px; gap: 10px; overflow-x: auto; padding-bottom: 5px; }
+        .sub-menu.active { display: flex; }
+        .color-dot { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.2); flex-shrink: 0; }
+        .filter-chip { padding: 5px 12px; background: #eee; border-radius: 15px; font-size: 0.8rem; white-space: nowrap; cursor: pointer; }
+        .filter-chip.active { background: var(--accent); color: white; }
+
+        /* --- FILTERS CSS --- */
+        .f-pure { filter: brightness(1.05) contrast(0.95) saturate(0.9); }
+        .f-peach { filter: sepia(0.1) saturate(1.2) brightness(1.05) contrast(0.95); } /* Pink Tint applied in JS/Mix-blend */
+        .f-bw { filter: grayscale(1) contrast(1.1); }
+        .f-fade { filter: contrast(0.9) brightness(1.1) sepia(0.2); }
+        .f-dark { filter: brightness(0.8) contrast(1.2) saturate(0.8); }
+
+        /* Hidden Inputs */
+        #file-input { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="booth-body">
+        
+        <div class="light-strip-container">
+            <div class="light-pill" id="lightPill"></div>
+        </div>
+
+        <div id="view-start" class="view start-screen active">
+            <div class="logo-area">
+                <h1>LIFE 4 CUT</h1>
+                <p style="color:#888; letter-spacing: 2px; font-size: 0.8rem;">KOREAN STUDIO</p>
+            </div>
+            <button class="btn-start" onclick="startCamera()">START</button>
+        </div>
+
+        <div id="view-camera" class="view camera-screen">
+            <div class="counter-pill" id="shot-counter">0 / 4</div>
+            <div class="cam-feed-wrap">
+                <video id="video" autoplay playsinline></video>
+                <div id="countdown" style="position:absolute; font-size:8rem; color:white; font-weight:bold; display:none; text-shadow:0 0 20px rgba(0,0,0,0.5);">3</div>
+            </div>
+            
+            <div class="cam-controls">
+                <button class="btn-circle" onclick="toggleFlip()">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M15,21h-2v-2h2V21z M13,3h2v2h-2V3z M21,9h-2v2h2V9z M17,3h2v2h-2V3z M19,21h-2v-2h2V21z M21,13h-2v2h2V13z M21,17h-2v2h2V17z M5,10.94V3h12v7.94c0,3.31-2.69,6-6,6S5,14.25,5,10.94z M11,10.94V5H7v5.94c0,2.2,1.8,4,4,4S11,13.14,11,10.94z M5,18l3.5-4.5l2.5,3l3.5-4.5l4.5,6H5z"/></svg>
+                </button>
+                
+                <button class="btn-shutter" onclick="triggerSequence()"></button>
+                
+                <button class="btn-circle" onclick="cycleCamFilter()">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M17.66 7.93L12 2.27 6.34 7.93c-3.12 3.12-3.12 8.19 0 11.31C7.9 20.8 9.95 21.58 12 21.58c2.05 0 4.1-.78 5.66-2.34 3.12-3.12 3.12-8.19 0-11.31zM12 19.59c-1.6 0-3.11-.62-4.24-1.76C6.62 16.69 6 15.19 6 13.59s.62-3.11 1.76-4.24L12 5.1l4.24 4.24c2.34 2.34 2.34 6.14 0 8.49-1.13 1.13-2.64 1.76-4.24 1.76z"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <div id="view-editor" class="view editor-screen">
+            <div class="canvas-container">
+                <canvas id="mainCanvas"></canvas>
+            </div>
+
+            <div class="toolbar-area">
+                <div id="sub-layout" class="sub-menu">
+                    <button class="filter-chip" onclick="setLayout('strip')">4-Cut Strip</button>
+                    <button class="filter-chip" onclick="setLayout('grid')">2x2 Grid</button>
+                    <button class="filter-chip" onclick="setLayout('single')">1 Big</button>
+                </div>
+                
+                <div id="sub-bg" class="sub-menu">
+                    <div class="color-dot" style="background:#fff" onclick="setBg('#ffffff')"></div>
+                    <div class="color-dot" style="background:#000" onclick="setBg('#000000')"></div>
+                    <div class="color-dot" style="background:#ffc2d1" onclick="setBg('#ffc2d1')"></div>
+                    <div class="color-dot" style="background:#b0f2c2" onclick="setBg('#b0f2c2')"></div>
+                    <div class="color-dot" style="background:#c2e2ff" onclick="setBg('#c2e2ff')"></div>
+                    <button class="filter-chip" onclick="document.getElementById('file-input').click()">+ Img</button>
+                </div>
+
+                <div id="sub-filters" class="sub-menu">
+                    <button class="filter-chip" onclick="applyFilter('none')">Normal</button>
+                    <button class="filter-chip" onclick="applyFilter('pure')">Pure</button>
+                    <button class="filter-chip" onclick="applyFilter('peach')">Peach</button>
+                    <button class="filter-chip" onclick="applyFilter('bw')">Mono</button>
+                    <button class="filter-chip" onclick="applyFilter('fade')">Fade</button>
+                </div>
+
+                <div class="scroll-track">
+                    <button class="tool-btn" onclick="toggleSub('layout')">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M4 4h16v16H4V4zm2 2v12h12V6H6z"/></svg>
+                        Layout
+                    </button>
+                    <button class="tool-btn" onclick="toggleSub('bg')">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/></svg>
+                        Backgr
+                    </button>
+                    <button class="tool-btn" onclick="toggleSub('filters')">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M19.36 2.72l-1.42 1.42-3.41-3.42.71-.71c.78-.78 2.05-.78 2.83 0l1.29 1.29c.79.79.79 2.05 0 2.84zM3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z"/></svg>
+                        Filters
+                    </button>
+                    <button class="tool-btn" onclick="toggleDraw()">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M7 14c-1.66 0-3 1.34-3 3 0 1.31-1.16 2-2 2 .92 1.22 2.49 2 4 2 2.21 0 4-1.79 4-4 0-1.66-1.34-3-3-3zm13.71-9.37l-1.34-1.34c-.39-.39-1.02-.39-1.41 0L9 12.25 11.75 15l8.96-8.96c.39-.39.39-1.02 0-1.41z"/></svg>
+                        Draw
+                    </button>
+                    <button class="tool-btn" onclick="document.getElementById('file-input').click()">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+                        Sticker
+                    </button>
+                    <button class="tool-btn" onclick="saveImage()">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+                        Save
+                    </button>
+                </div>
+            </div>
+            <input type="file" id="file-input" accept="image/*" onchange="handleFileUpload(event)">
+        </div>
+
+    </div>
+
+    <script>
+        // --- VARIABLES ---
+        const state = {
+            photos: [],
+            layout: 'strip', // strip, grid, single
+            bgColor: '#ffffff',
+            bgImg: null,
+            filter: 'none',
+            objects: [], // stickers, images
+            drawPaths: [],
+            isDrawing: false,
+            activeObj: null
+        };
+
+        const canvas = document.getElementById('mainCanvas');
+        const ctx = canvas.getContext('2d');
+        const video = document.getElementById('video');
+
+        // --- 1. SETUP & CAMERA ---
+        
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { width: { ideal: 1280 }, height: { ideal: 960 }, facingMode: "user" } 
+                });
+                video.srcObject = stream;
+                switchView('view-camera');
+            } catch(e) { alert("Camera not accessible"); }
+        }
+
+        function switchView(id) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        let isMirrored = true;
+        function toggleFlip() {
+            isMirrored = !isMirrored;
+            video.style.transform = isMirrored ? "scaleX(-1)" : "scaleX(1)";
+        }
+
+        const camFilters = ['none', 'brightness(1.1) contrast(0.95)', 'grayscale(1)', 'sepia(0.3) contrast(1.1)'];
+        let cfIndex = 0;
+        function cycleCamFilter() {
+            cfIndex = (cfIndex + 1) % camFilters.length;
+            video.style.filter = camFilters[cfIndex];
+            document.documentElement.style.setProperty('--cam-filter', camFilters[cfIndex]);
+        }
+
+        // --- 2. CAPTURE LOGIC ---
+
+        function triggerSequence() {
+            // Take 4 photos with countdown
+            let shotsTaken = 0;
+            state.photos = [];
+            
+            const takeOne = () => {
+                const countEl = document.getElementById('countdown');
+                countEl.style.display = 'block';
+                let c = 3;
+                countEl.innerText = c;
+                
+                const timer = setInterval(() => {
+                    c--;
+                    if (c > 0) countEl.innerText = c;
+                    else {
+                        clearInterval(timer);
+                        countEl.style.display = 'none';
+                        snap();
+                        shotsTaken++;
+                        document.getElementById('shot-counter').innerText = `${shotsTaken} / 4`;
+                        if (shotsTaken < 4) setTimeout(takeOne, 1000); // Delay between shots
+                        else setTimeout(initEditor, 1000);
+                    }
+                }, 800);
+            };
+            takeOne();
+        }
+
+        function snap() {
+            // Flash
+            const f = document.createElement('div');
+            f.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:white;z-index:999;transition:opacity 0.2s;";
+            document.body.appendChild(f);
+            setTimeout(() => f.style.opacity = 0, 50);
+            setTimeout(() => f.remove(), 250);
+
+            // Capture
+            const c = document.createElement('canvas');
+            c.width = video.videoWidth;
+            c.height = video.videoHeight;
+            const cx = c.getContext('2d');
+            if(isMirrored) {
+                cx.translate(c.width, 0);
+                cx.scale(-1, 1);
+            }
+            cx.filter = getComputedStyle(video).filter;
+            cx.drawImage(video, 0, 0);
+            state.photos.push(c); // Store canvas element directly
+        }
+
+        // --- 3. EDITOR & LAYOUT ENGINE ---
+
+        function initEditor() {
+            switchView('view-editor');
+            renderEditor();
+        }
+
+        function renderEditor() {
+            // 1. Configure Canvas Size based on Layout
+            // Standard Korean Strip: 4:12 ratio roughly (tall)
+            // Grid: 4:5 or 1:1
+            
+            let w = 600;
+            let h = 1600; // Default strip
+
+            if(state.layout === 'strip') { w = 400; h = 1400; }
+            else if(state.layout === 'grid') { w = 800; h = 1200; }
+            else if(state.layout === 'single') { w = 800; h = 1000; }
+            
+            // Resize display canvas to fit screen while maintaining ratio
+            canvas.width = w;
+            canvas.height = h;
+
+            // 2. Fill Background
+            if(state.bgImg) {
+                // Draw pattern/image
+                const pattern = ctx.createPattern(state.bgImg, 'repeat');
+                ctx.fillStyle = pattern;
+                ctx.fillRect(0,0,w,h);
+            } else {
+                ctx.fillStyle = state.bgColor;
+                ctx.fillRect(0,0,w,h);
+            }
+
+            // 3. Draw Photos
+            if (state.photos.length > 0) {
+                if (state.layout === 'strip') {
+                    // 4 vertical
+                    const gap = 30;
+                    const margin = 40;
+                    const pW = w - (margin*2);
+                    const pH = (h - (margin*2) - (gap*3)) / 4;
+                    
+                    state.photos.forEach((p, i) => {
+                        if(i<4) drawPhoto(p, margin, margin + i*(pH+gap), pW, pH);
+                    });
+                } 
+                else if (state.layout === 'grid') {
+                    // 2x2
+                    const gap = 30;
+                    const margin = 50;
+                    const pW = (w - (margin*2) - gap)/2;
+                    const pH = pW * 0.75; // 4:3 ratio
+                    
+                    // Center the block vertically
+                    const startY = (h - (pH*2 + gap))/2;
+
+                    state.photos.forEach((p, i) => {
+                        if(i<4) {
+                            const col = i % 2;
+                            const row = Math.floor(i / 2);
+                            drawPhoto(p, margin + col*(pW+gap), startY + row*(pH+gap), pW, pH);
+                        }
+                    });
+                }
+                else {
+                    // Single (Use the first photo or best one)
+                    const margin = 50;
+                    const pW = w - margin*2;
+                    const pH = pW * 0.75;
+                    drawPhoto(state.photos[0], margin, (h-pH)/2, pW, pH);
+                }
+            }
+
+            // 4. Draw Drawings
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            state.drawPaths.forEach(path => {
+                ctx.beginPath();
+                ctx.strokeStyle = path.color;
+                ctx.lineWidth = path.width;
+                if(path.points.length > 0) {
+                    ctx.moveTo(path.points[0].x, path.points[0].y);
+                    for(let i=1; i<path.points.length; i++) {
+                        ctx.lineTo(path.points[i].x, path.points[i].y);
+                    }
+                }
+                ctx.stroke();
+            });
+
+            // 5. Draw Stickers/Objects
+            state.objects.forEach(obj => {
+                ctx.save();
+                ctx.translate(obj.x, obj.y);
+                ctx.rotate(obj.rot);
+                ctx.scale(obj.scale, obj.scale);
+                if(obj.type === 'img') {
+                    ctx.drawImage(obj.img, -obj.w/2, -obj.h/2, obj.w, obj.h);
+                }
+                
+                // Draw Selection Box
+                if(state.activeObj === obj) {
+                    ctx.strokeStyle = "#000";
+                    ctx.setLineDash([5, 5]);
+                    ctx.strokeRect(-obj.w/2 - 5, -obj.h/2 - 5, obj.w + 10, obj.h + 10);
+                    // Draw Handle
+                    ctx.fillStyle = "#fff";
+                    ctx.fillRect(obj.w/2, obj.h/2, 20, 20);
+                    ctx.strokeRect(obj.w/2, obj.h/2, 20, 20);
+                }
+                ctx.restore();
+            });
+        }
+
+        function drawPhoto(imgCanvas, x, y, w, h) {
+            ctx.save();
+            // Apply Layout Filter
+            if(state.filter === 'bw') ctx.filter = 'grayscale(1) contrast(1.2)';
+            else if(state.filter === 'sepia') ctx.filter = 'sepia(0.8)';
+            else if(state.filter === 'pure') ctx.filter = 'brightness(1.1) contrast(0.95)';
+            else if(state.filter === 'peach') {
+                ctx.filter = 'sepia(0.2) saturate(1.2) brightness(1.05)';
+                // Pink tint overlay simulation
+            }
+            else if(state.filter === 'fade') ctx.filter = 'contrast(0.9) brightness(1.1)';
+            
+            // Draw White Frame
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(x-5, y-5, w+10, h+10);
+            
+            // Draw Image (Crop fit)
+            // Calculate ratios
+            const iRatio = imgCanvas.width / imgCanvas.height;
+            const dRatio = w / h;
+            let sW, sH, sX, sY;
+
+            if(iRatio > dRatio) {
+                sH = imgCanvas.height; sW = sH * dRatio;
+                sX = (imgCanvas.width - sW)/2; sY = 0;
+            } else {
+                sW = imgCanvas.width; sH = sW / dRatio;
+                sX = 0; sY = (imgCanvas.height - sH)/2;
+            }
+
+            ctx.drawImage(imgCanvas, sX, sY, sW, sH, x, y, w, h);
+            ctx.restore();
+        }
+
+        // --- TOOLS ---
+
+        function setLayout(l) { state.layout = l; renderEditor(); }
+        function setBg(c) { state.bgColor = c; state.bgImg = null; renderEditor(); }
+        function applyFilter(f) { state.filter = f; renderEditor(); }
+        function toggleSub(id) {
+            document.querySelectorAll('.sub-menu').forEach(el => el.classList.remove('active'));
+            document.getElementById('sub-'+id).classList.add('active');
+            state.isDrawing = false;
+        }
+        function toggleDraw() {
+            state.isDrawing = !state.isDrawing;
+            // Visual feedback could be added here
+            state.activeObj = null; // Deselect
+            renderEditor();
+        }
+
+        function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const img = new Image();
+                img.onload = () => {
+                    // If active view is editor -> add as sticker
+                    // If clicked via bg -> add as bg
+                    // Simplified: We assume sticker unless specifically added via "BG" logic (which needs separation but for now simplified)
+                    
+                    // Simple heuristic: Is this a BG upload or Sticker? 
+                    // Let's treat button click as sticker always for now, except if we add specific BG uploader.
+                    // The user said "add image as background". Let's handle it:
+                    if(document.getElementById('sub-bg').classList.contains('active')) {
+                        state.bgImg = img;
+                    } else {
+                        // Sticker
+                        state.objects.push({
+                            type: 'img', img: img,
+                            x: canvas.width/2, y: canvas.height/2,
+                            w: 200, h: 200 * (img.height/img.width),
+                            rot: 0, scale: 1
+                        });
+                    }
+                    renderEditor();
+                };
+                img.src = evt.target.result;
+            };
+            reader.readAsDataURL(file);
+            e.target.value = '';
+        }
+
+        // --- INTERACTION LOGIC (Touch/Mouse) ---
+        let isDrag = false;
+        let isTransform = false;
+        let lastP = {x:0, y:0};
+        let startAngle = 0;
+        let startDist = 0;
+
+        function getPos(e) {
+            const r = canvas.getBoundingClientRect();
+            const touch = e.touches ? e.touches[0] : e;
+            return {
+                x: (touch.clientX - r.left) * (canvas.width / r.width),
+                y: (touch.clientY - r.top) * (canvas.height / r.height)
+            };
+        }
+
+        canvas.addEventListener('pointerdown', e => {
+            const p = getPos(e);
+            
+            if(state.isDrawing) {
+                isDrag = true;
+                state.drawPaths.push({points:[p], color:'var(--accent)', width:5});
+                renderEditor();
+                return;
+            }
+
+            // Check Handles first
+            if(state.activeObj) {
+                const o = state.activeObj;
+                // Transform coordinate of click to object space to check handle
+                // Simplified: check distance to handle screen pos
+                // Actually need proper math but let's do distance check to the handle center roughly
+                // Handle is at w/2, h/2 relative to center.
+                // We need to project p into object local space.
+                // Too complex for 1 file? Use screen distance approx.
+                // Re-calculating handle screen pos:
+                const cx = Math.cos(o.rot), sx = Math.sin(o.rot);
+                const hx = o.x + (o.w/2 * o.scale * cx) - (o.h/2 * o.scale * sx); // Corner
+                const hy = o.y + (o.w/2 * o.scale * sx) + (o.h/2 * o.scale * cx);
+                
+                if(Math.hypot(p.x - hx, p.y - hy) < 40) {
+                    isTransform = true;
+                    startAngle = Math.atan2(p.y - o.y, p.x - o.x) - o.rot;
+                    startDist = Math.hypot(p.x - o.x, p.y - o.y) / o.scale;
+                    return;
+                }
+            }
+
+            // Check Hit Objects
+            let hit = null;
+            for(let i=state.objects.length-1; i>=0; i--) {
+                const o = state.objects[i];
+                // Simple rect hit test (ignoring rotation for selection ease)
+                if(Math.abs(p.x - o.x) < (o.w*o.scale)/2 && Math.abs(p.y - o.y) < (o.h*o.scale)/2) {
+                    hit = o; break;
+                }
+            }
+            state.activeObj = hit;
+            if(hit) { isDrag = true; lastP = p; }
+            renderEditor();
+        });
+
+        canvas.addEventListener('pointermove', e => {
+            const p = getPos(e);
+            
+            if(state.isDrawing && isDrag) {
+                state.drawPaths[state.drawPaths.length-1].points.push(p);
+                renderEditor();
+                return;
+            }
+
+            if(isTransform && state.activeObj) {
+                const dx = p.x - state.activeObj.x;
+                const dy = p.y - state.activeObj.y;
+                state.activeObj.rot = Math.atan2(dy, dx) - startAngle;
+                state.activeObj.scale = Math.hypot(dx, dy) / startDist;
+                renderEditor();
+                return;
+            }
+
+            if(isDrag && state.activeObj) {
+                state.activeObj.x += p.x - lastP.x;
+                state.activeObj.y += p.y - lastP.y;
+                lastP = p;
+                renderEditor();
+            }
+        });
+
+        canvas.addEventListener('pointerup', () => {
+            isDrag = false; isTransform = false;
+        });
+
+        function saveImage() {
+            const link = document.createElement('a');
+            link.download = 'life4cut_photo.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+    </script>
+</body>
+</html>

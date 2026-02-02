@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro Photobooth V11</title>
+    <style>
+        /* --- FONTS --- */
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;600&display=swap');
+
+        :root {
+            --bg-color: #1a1a1a;
+            --panel-bg: #2b2b2b;
+            --accent: #ff00ff;
+            --text-color: #ffffff;
+            --strip-color: #ff00ff; /* Dynamic Light Color */
+            --font-ui: 'Inter', sans-serif;
+            --font-retro: 'Press Start 2P', cursive;
+        }
+
+        body {
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-ui);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* --- START MENU (Ver 10 Style) --- */
+        #start-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            font-family: var(--font-retro); /* Ver 10 Font */
+        }
+
+        #start-screen h1 {
+            color: #fff;
+            text-shadow: 4px 4px var(--accent);
+            font-size: 3rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        .start-btn {
+            background: var(--accent);
+            color: #fff;
+            border: 4px solid #fff;
+            padding: 20px 40px;
+            font-family: var(--font-retro);
+            font-size: 1.2rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: 8px 8px 0px rgba(255,255,255,0.2);
+            transition: transform 0.1s;
+        }
+
+        .start-btn:active {
+            transform: translate(4px, 4px);
+            box-shadow: 4px 4px 0px rgba(255,255,255,0.2);
+        }
+
+        /* --- MAIN LAYOUT --- */
+        .booth-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+            max-width: 600px;
+            position: relative;
+        }
+
+        /* --- LIGHT STRIP (Updated) --- */
+        .light-strip {
+            height: 12px;
+            width: 90%;
+            margin: 10px auto;
+            border-radius: 10px; /* Curve the physical strip */
+            background-color: var(--strip-color); /* Physical color */
+            box-shadow: 0 0 25px 5px var(--strip-color); /* Curved Glow */
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        /* --- VIEWFINDER (Aspect Ratio Fix) --- */
+        .viewfinder {
+            flex-grow: 1;
+            position: relative;
+            background: #000;
+            margin: 10px;
+            border-radius: 20px;
+            overflow: hidden;
+            /* Force 3:4 Aspect Ratio Container */
+            aspect-ratio: 3 / 4; 
+            max-height: 70vh;
+            border: 2px solid #444;
+            align-self: center;
+        }
+
+        video, canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* Prevents stretching */
+            transform: scaleX(-1); /* Mirror */
+        }
+
+        /* --- STICKER LAYER --- */
+        #sticker-layer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .sticker {
+            position: absolute;
+            font-size: 3rem;
+            cursor: grab;
+            user-select: none;
+            pointer-events: auto;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+            transition: transform 0.1s;
+        }
+        
+        .sticker img {
+            max-width: 100px;
+            max-height: 100px;
+            pointer-events: none;
+        }
+
+        .sticker:active { cursor: grabbing; transform: scale(1.1); }
+
+        /* --- TOOLBAR (Horizontal Scroll) --- */
+        .controls-area {
+            background: var(--panel-bg);
+            padding: 10px 0;
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .scroll-hint {
+            text-align: center;
+            font-size: 0.7rem;
+            color: #888;
+            margin-bottom: -5px;
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto; /* Horizontal Scroll */
+            padding: 0 20px;
+            scrollbar-width: none; /* Hide standard scrollbar FF */
+            -ms-overflow-style: none;
+            scroll-behavior: smooth;
+            align-items: center;
+        }
+
+        .toolbar::-webkit-scrollbar {
+            display: none; /* Hide scrollbar Chrome/Safari */
+        }
+
+        .tool-btn {
+            background: #333;
+            border: 1px solid #555;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            white-space: nowrap; /* Prevent wrapping */
+            flex-shrink: 0; /* Prevent shrinking */
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: 0.2s;
+        }
+
+        .tool-btn:hover { background: #444; border-color: #777; }
+        .tool-btn.active { background: var(--accent); border-color: var(--accent); }
+
+        /* --- SLIDERS ROW --- */
+        .slider-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            padding: 5px 20px;
+        }
+
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 45%;
+        }
+
+        .slider-group label {
+            font-size: 0.7rem;
+            color: #aaa;
+            margin-bottom: 4px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        /* --- CAPTURE BUTTON --- */
+        .capture-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: white;
+            border: 4px solid rgba(0,0,0,0.2);
+            margin: 5px auto 15px auto;
+            cursor: pointer;
+            transition: transform 0.1s;
+            flex-shrink: 0;
+        }
+        .capture-btn:active { transform: scale(0.9); }
+
+        /* --- FILTER STYLES --- */
+        /* Beauty Filter: Blur + Brightness to smooth skin */
+        .filter-beauty {
+            filter: blur(calc(0.5px * var(--intensity, 1))) brightness(calc(1 + (0.1 * var(--intensity, 1)))) contrast(0.95) saturate(1.1);
+        }
+        .filter-bw { filter: grayscale(calc(100% * var(--intensity, 1))); }
+        .filter-sepia { filter: sepia(calc(100% * var(--intensity, 1))); }
+        .filter-warm { filter: sepia(calc(30% * var(--intensity, 1))) saturate(calc(140% * var(--intensity, 1))); }
+        .filter-cool { filter: hue-rotate(180deg) saturate(calc(0.5 * var(--intensity, 1))); }
+        .filter-grain { filter: contrast(1.5) grayscale(calc(100% * var(--intensity, 1))); }
+
+        /* Hidden File Input */
+        #img-upload { display: none; }
+
+    </style>
+</head>
+<body>
+
+    <div id="start-screen">
+        <h1>PHOTO<br>BOOTH<br>V11</h1>
+        <button class="start-btn" onclick="startApp()">Insert Coin</button>
+    </div>
+
+    <div class="booth-container">
+        <div class="light-strip" id="lightStrip"></div>
+
+        <div class="viewfinder" id="captureArea">
+            <video id="video" autoplay playsinline></video>
+            <div id="sticker-layer"></div>
+        </div>
+
+        <div class="controls-area">
+            
+            <div class="slider-row">
+                <div class="slider-group">
+                    <label>Filter Intensity</label>
+                    <input type="range" id="intensitySlider" min="0" max="2" step="0.1" value="1">
+                </div>
+                <div class="slider-group">
+                    <label>Light Color</label>
+                    <input type="range" id="hueSlider" min="0" max="360" value="300">
+                </div>
+            </div>
+
+            <div class="scroll-hint">‹ Slide to see more tools ›</div>
+
+            <div class="toolbar">
+                <button class="tool-btn" onclick="setFilter('none')">Norm</button>
+                <button class="tool-btn" onclick="setFilter('beauty')">✨ Beauty</button>
+                <button class="tool-btn" onclick="setFilter('bw')">B&W</button>
+                <button class="tool-btn" onclick="setFilter('sepia')">Sepia</button>
+                <button class="tool-btn" onclick="setFilter('warm')">Warm</button>
+                
+                <button class="tool-btn" onclick="addSticker('📹')">CCD Cam</button>
+                <button class="tool-btn" onclick="addSticker('🧢')">Blue Hat</button>
+                <button class="tool-btn" onclick="addSticker('👒')">Sun Hat</button>
+                <button class="tool-btn" onclick="addSticker('🎀')">Ribbon</button>
+                <button class="tool-btn" onclick="addSticker('✌️')">Peace</button>
+                
+                <button class="tool-btn" onclick="document.getElementById('img-upload').click()">📁 Add Img</button>
+                <button class="tool-btn" onclick="clearStickers()">Clear Props</button>
+            </div>
+            
+            <input type="file" id="img-upload" accept="image/png, image/jpeg" onchange="handleImageUpload(event)">
+            <button class="capture-btn" onclick="takePhoto()"></button>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const startScreen = document.getElementById('start-screen');
+        const stickerLayer = document.getElementById('sticker-layer');
+        const lightStrip = document.getElementById('lightStrip');
+        let currentFilter = 'none';
+
+        // 1. START APP
+        async function startApp() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }, // Try to get HD, CSS handles aspect ratio
+                        facingMode: "user" 
+                    } 
+                });
+                video.srcObject = stream;
+                startScreen.style.display = 'none';
+            } catch (err) {
+                alert("Camera access denied or error: " + err);
+            }
+        }
+
+        // 2. FILTERS & INTENSITY
+        function setFilter(filterName) {
+            currentFilter = filterName;
+            updateFilterStyle();
+            
+            // Highlight active button logic could go here
+            document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+        }
+
+        const intensitySlider = document.getElementById('intensitySlider');
+        intensitySlider.addEventListener('input', updateFilterStyle);
+
+        function updateFilterStyle() {
+            const val = intensitySlider.value;
+            video.className = ''; // Reset
+            
+            if (currentFilter !== 'none') {
+                video.classList.add(`filter-${currentFilter}`);
+                video.style.setProperty('--intensity', val);
+            } else {
+                video.style.filter = 'none';
+            }
+        }
+
+        // 3. LIGHT STRIP CONTROL
+        const hueSlider = document.getElementById('hueSlider');
+        hueSlider.addEventListener('input', (e) => {
+            const hue = e.target.value;
+            const color = `hsl(${hue}, 100%, 50%)`;
+            document.documentElement.style.setProperty('--strip-color', color);
+            // Also update accent color slightly for UI consistency
+            document.documentElement.style.setProperty('--accent', color);
+        });
+
+        // 4. PROPS & STICKERS
+        function addSticker(content, isImage = false) {
+            const el = document.createElement('div');
+            el.className = 'sticker';
+            el.style.left = '50%';
+            el.style.top = '50%';
+            el.style.transform = 'translate(-50%, -50%)';
+            
+            if(isImage) {
+                const img = document.createElement('img');
+                img.src = content;
+                el.appendChild(img);
+            } else {
+                el.textContent = content;
+            }
+
+            makeDraggable(el);
+            stickerLayer.appendChild(el);
+        }
+
+        function clearStickers() {
+            stickerLayer.innerHTML = '';
+        }
+
+        // 5. IMAGE UPLOAD
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    addSticker(e.target.result, true);
+                };
+                reader.readAsDataURL(file);
+            }
+            // Reset input so same file can be selected again
+            event.target.value = '';
+        }
+
+        // 6. DRAG LOGIC
+        function makeDraggable(el) {
+            let isDragging = false;
+            let startX, startY, initialLeft, initialTop;
+
+            el.addEventListener('mousedown', startDrag);
+            el.addEventListener('touchstart', startDrag, {passive: false});
+
+            function startDrag(e) {
+                isDragging = true;
+                const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+                const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+                
+                startX = clientX;
+                startY = clientY;
+                initialLeft = el.offsetLeft;
+                initialTop = el.offsetTop;
+
+                document.addEventListener('mousemove', drag);
+                document.addEventListener('touchmove', drag, {passive: false});
+                document.addEventListener('mouseup', stopDrag);
+                document.addEventListener('touchend', stopDrag);
+            }
+
+            function drag(e) {
+                if (!isDragging) return;
+                e.preventDefault();
+                const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+                const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+
+                const dx = clientX - startX;
+                const dy = clientY - startY;
+
+                el.style.left = `${initialLeft + dx}px`;
+                el.style.top = `${initialTop + dy}px`;
+            }
+
+            function stopDrag() {
+                isDragging = false;
+                document.removeEventListener('mousemove', drag);
+                document.removeEventListener('touchmove', drag);
+                document.removeEventListener('mouseup', stopDrag);
+                document.removeEventListener('touchend', stopDrag);
+            }
+        }
+
+        // 7. CAPTURE
+        function takePhoto() {
+            // Flash effect
+            const flash = document.createElement('div');
+            flash.style.position = 'fixed';
+            flash.style.top = 0; flash.style.left = 0;
+            flash.style.width = '100%'; flash.style.height = '100%';
+            flash.style.background = 'white';
+            flash.style.zIndex = 2000;
+            document.body.appendChild(flash);
+            
+            // Audio
+            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2578/2578-preview.mp3');
+            audio.play().catch(e => console.log('Audio blocked'));
+
+            const fade = flash.animate([{opacity:1}, {opacity:0}], 500);
+            fade.onfinish = () => flash.remove();
+
+            // Create Canvas
+            const canvas = document.createElement('canvas');
+            const container = document.querySelector('.viewfinder');
+            const rect = container.getBoundingClientRect();
+            
+            // Set canvas to match the displayed aspect ratio
+            canvas.width = rect.width; 
+            canvas.height = rect.height;
+            const ctx = canvas.getContext('2d');
+
+            // 1. Draw Video (Mirrored & Filtered)
+            ctx.save();
+            ctx.filter = getComputedStyle(video).filter;
+            ctx.translate(canvas.width, 0);
+            ctx.scale(-1, 1);
+            
+            // Calculate cover fit
+            const vRatio = video.videoWidth / video.videoHeight;
+            const cRatio = canvas.width / canvas.height;
+            let drawW, drawH, startX, startY;
+
+            if (vRatio > cRatio) {
+                drawH = canvas.height;
+                drawW = drawH * vRatio;
+                startX = (canvas.width - drawW) / 2;
+                startY = 0;
+            } else {
+                drawW = canvas.width;
+                drawH = drawW / vRatio;
+                startX = 0;
+                startY = (canvas.height - drawH) / 2;
+            }
+            
+            ctx.drawImage(video, startX, startY, drawW, drawH);
+            ctx.restore();
+
+            // 2. Draw Stickers
+            const stickers = document.querySelectorAll('.sticker');
+            stickers.forEach(s => {
+                const sRect = s.getBoundingClientRect();
+                const x = sRect.left - rect.left;
+                const y = sRect.top - rect.top;
+                
+                // If it's an image sticker
+                if(s.querySelector('img')) {
+                    const img = s.querySelector('img');
+                    ctx.drawImage(img, x, y, sRect.width, sRect.height);
+                } else {
+                    // Text/Emoji sticker
+                    ctx.font = getComputedStyle(s).fontSize + " " + getComputedStyle(s).fontFamily;
+                    ctx.fillStyle = "white"; // Emoji fallback color
+                    ctx.textBaseline = "top";
+                    ctx.fillText(s.textContent, x, y + 10); // slight offset adjust
+                }
+            });
+
+            // 3. Download
+            const link = document.createElement('a');
+            link.download = `photobooth_v11_${Date.now()}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+    </script>
+</body>
+</html>

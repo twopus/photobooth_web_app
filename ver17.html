@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cloud Studio Pro</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&family=Pacifico&family=Bangers&family=Playfair+Display:wght@700&display=swap');
+
+        :root {
+            --bg-room: #121212;
+            --machine-shell: #f0f0f0;
+            --accent: #ffb7b2; 
+            --accent-btn: #ff9e99;
+            --studio-light: #ffffff;
+            --light-int: 1;
+            --delete-red: #ff6b6b;
+        }
+
+        * { box-sizing: border-box; touch-action: none; user-select: none; -webkit-user-select: none; }
+
+        body {
+            margin: 0; height: 100vh; background-color: var(--bg-room);
+            font-family: 'Quicksand', sans-serif; 
+            display: flex; justify-content: center; align-items: center;
+            background-image: 
+                radial-gradient(circle at 50% 30%, var(--studio-light) 0%, transparent 60%),
+                radial-gradient(#222 15%, transparent 16%);
+            background-size: 100% 100%, 40px 40px;
+            overflow: hidden;
+        }
+
+        /* --- BOOTH STRUCTURE --- */
+        .booth-structure {
+            display: flex; flex-direction: column; align-items: center;
+            width: 100%; max-width: 500px; height: 98vh; position: relative;
+        }
+
+        .top-light-cap {
+            width: 95%; height: 40px; background: #fff; /* SHORTER TOP */
+            border-radius: 50px; margin-bottom: 10px; z-index: 2;
+            box-shadow: 0 0 calc(30px * var(--light-int)) var(--studio-light);
+            border: 4px solid #fff; opacity: calc(0.8 + (0.2 * var(--light-int)));
+        }
+
+        .booth-casing {
+            flex: 1; width: 100%; background: var(--machine-shell);
+            border-radius: 40px; padding: 20px; display: flex; flex-direction: column;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+
+        .main-stage { flex: 1; display: flex; gap: 15px; position: relative; height: 100%; overflow: hidden; }
+
+        .side-light {
+            width: 20px; background: #fff; border-radius: 20px;
+            box-shadow: 0 0 calc(20px * var(--light-int)) var(--studio-light);
+            opacity: var(--light-int);
+        }
+
+        .screen-container {
+            flex: 1; background: #fff; border-radius: 30px; position: relative;
+            overflow: hidden; display: flex; flex-direction: column; border: 8px solid #333;
+        }
+
+        /* --- VIEWS --- */
+        .view { flex: 1; display: none; flex-direction: column; position: relative; background: #fff; width: 100%; height: 100%; }
+        .view.active { display: flex; }
+
+        .start-view { justify-content: center; align-items: center; text-align: center; }
+        .btn-main {
+            padding: 15px 40px; background: var(--accent-btn); color: white;
+            border: none; border-radius: 50px; font-size: 1.2rem; font-weight: 700;
+            box-shadow: 0 5px 15px rgba(255,158,153,0.4); cursor: pointer;
+            font-family: 'Quicksand', sans-serif;
+        }
+
+        .camera-area { flex: 1; position: relative; background: #000; border-radius: 20px 20px 0 0; overflow: hidden; }
+        video { width: 100%; height: 100%; object-fit: cover; }
+        .mirrored { transform: scaleX(-1); }
+        
+        .cam-ui {
+            background: #fff; padding: 15px; display: flex; flex-direction: column;
+            align-items: center; gap: 10px; border-top: 1px solid #eee;
+        }
+        
+        .shutter-ring {
+            width: 70px; height: 70px; border-radius: 50%; border: 5px solid var(--accent);
+            padding: 5px; cursor: pointer;
+        }
+        .shutter-inner { width: 100%; height: 100%; background: var(--accent); border-radius: 50%; }
+
+        /* SELECTION GRID */
+        .select-view { padding: 20px; background: #fafafa; align-items: center; }
+        .grid-container {
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;
+            overflow-y: auto; width: 100%; padding: 10px;
+        }
+        .thumb-wrap {
+            width: 100px; height: 130px; border-radius: 15px; overflow: hidden;
+            border: 4px solid transparent; opacity: 0.6; transition: 0.2s;
+            background: #eee;
+        }
+        .thumb-wrap.selected { border-color: var(--accent); opacity: 1; transform: scale(1.05); }
+        .thumb-wrap img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* EDITOR */
+        .editor-view { background: #f4f4f4; }
+        .canvas-area {
+            flex: 1; display: flex; align-items: center; justify-content: center;
+            padding: 20px; overflow: hidden;
+        }
+        canvas {
+            max-width: 100%; max-height: 100%; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1); background: white;
+        }
+
+        .toolbar {
+            background: #fff; padding: 15px; border-radius: 30px 30px 0 0;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
+        }
+        .tool-row { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 5px; justify-content: center; }
+        .tool-btn {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            width: 65px; height: 65px; border-radius: 18px; border: 2px solid #f0f0f0;
+            background: white; flex-shrink: 0; color: #555; font-family: 'Quicksand';
+        }
+        .tool-btn.active { border-color: var(--accent); background: #fff5f5; color: var(--accent-btn); }
+        .tool-label { font-size: 0.65rem; font-weight: 700; margin-top: 4px; }
+
+        .sub-menu {
+            display: flex; gap: 10px; justify-content: center; padding: 10px;
+            background: #f9f9f9; border-radius: 15px; margin-bottom: 10px;
+            align-items: center; flex-wrap: wrap;
+        }
+        .brush-opt {
+            padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; 
+            border: 1px solid #ddd; background: white; font-weight: 700;
+        }
+        .brush-opt.active { background: #555; color: white; border-color: #555; }
+
+        /* Range Slider Styling */
+        input[type=range] { accent-color: var(--accent); width: 100px; }
+    </style>
+</head>
+<body>
+
+<div class="booth-structure">
+    <div class="top-light-cap"></div>
+    <div class="booth-casing">
+        <div class="main-stage">
+            <div class="side-light"></div>
+            <div class="screen-container">
+                
+                <div id="view-start" class="view active start-view">
+                    <h1 style="font-family:'Pacifico'; font-size:3rem; color:var(--accent-btn);">Cloud Studio</h1>
+                    <button class="btn-main" onclick="startCamera()">Start</button>
+                </div>
+
+                <div id="view-camera" class="view">
+                    <div class="camera-area">
+                        <video id="video" class="mirrored" autoplay playsinline></video>
+                        <div id="countdown" style="position:absolute; inset:0; display:none; place-items:center; font-size:8rem; color:white; font-weight:bold; background:rgba(0,0,0,0.2);">3</div>
+                    </div>
+                    <div class="cam-ui">
+                        <div style="font-weight:bold; color:#666;" id="shot-count">0 / 8</div>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <span style="font-size:0.7rem;">DIM</span>
+                            <input type="range" min="0" max="1" step="0.1" value="1" oninput="updateIntensity(this.value)">
+                            <span style="font-size:0.7rem;">BRIGHT</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:20px;">
+                            <button onclick="toggleInvert()" class="brush-opt">Flip</button>
+                            <div class="shutter-ring" onclick="triggerCapture()"><div class="shutter-inner"></div></div>
+                            <button onclick="finishSession()" class="brush-opt">Next ➔</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-select" class="view select-view">
+                    <h3 style="margin:0 0 10px 0;">Pick Photos</h3>
+                    <div style="display:flex; gap:5px; margin-bottom:10px; flex-wrap:wrap; justify-content:center;" id="layout-btns">
+                        </div>
+                    <div id="sub-layout-btns" style="display:flex; gap:5px; margin-bottom:10px;"></div>
+                    
+                    <div class="grid-container" id="thumb-grid"></div>
+                    
+                    <button id="btn-design" class="btn-main" style="width:100%; margin-top:10px; opacity:0.5;" onclick="goToEditor()">Design Frame</button>
+                </div>
+
+                <div id="view-edit" class="view editor-view">
+                    <div class="canvas-area">
+                        <canvas id="canvas"></canvas>
+                    </div>
+
+                    <div class="toolbar">
+                        <div id="sub-menu-draw" class="sub-menu" style="display:none;">
+                            <button class="brush-opt" onclick="setBrush('marker')">Marker</button>
+                            <button class="brush-opt" onclick="setBrush('pencil')">Pencil</button>
+                            <button class="brush-opt" onclick="setBrush('dotted')">Dashed</button>
+                            <button class="brush-opt" onclick="setBrush('dots')">Dots</button>
+                            <input type="color" value="#000000" onchange="state.drawColor = this.value" style="width:30px; height:30px; border:none; background:none;">
+                        </div>
+
+                        <div id="sub-menu-text" class="sub-menu" style="display:none;">
+                            <button class="brush-opt" onclick="changeFont('Quicksand')">Std</button>
+                            <button class="brush-opt" onclick="changeFont('Pacifico')">Cute</button>
+                            <button class="brush-opt" onclick="changeFont('Bangers')">Comic</button>
+                            <input type="color" id="text-color-picker" onchange="changeTextColor(this.value)">
+                            <button class="brush-opt" style="background:var(--delete-red); color:white;" onclick="deleteObject()">Del</button>
+                        </div>
+
+                        <div class="tool-row">
+                            <div class="tool-btn" style="position:relative;">
+                                <span style="font-size:1.5rem;">🎨</span><span class="tool-label">Color</span>
+                                <input type="color" style="position:absolute; inset:0; opacity:0;" oninput="setBgColor(this.value)">
+                            </div>
+                             <div class="tool-btn" style="position:relative;">
+                                <span style="font-size:1.5rem;">🖼️</span><span class="tool-label">Bg Img</span>
+                                <input type="file" accept="image/*" style="position:absolute; inset:0; opacity:0;" onchange="setBgImage(event)">
+                            </div>
+                            <div class="tool-btn" onclick="addText()">
+                                <span style="font-size:1.5rem;">Aa</span><span class="tool-label">Text</span>
+                            </div>
+                            <div id="btn-draw-toggle" class="tool-btn" onclick="toggleDraw()">
+                                <span style="font-size:1.5rem;">✏️</span><span class="tool-label">Draw</span>
+                            </div>
+                            <div class="tool-btn" onclick="download()">
+                                <span style="font-size:1.5rem;">⬇</span><span class="tool-label">Save</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="side-light"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const CONFIG = { gap: 20 };
+    let state = {
+        photos: [],
+        selectedIndices: [],
+        targetCount: 4,
+        layoutMode: 'grid', // 'grid' | 'strip' | 'vert' | 'horiz'
+        bgColor: '#ffffff',
+        bgImage: null,
+        objects: [],
+        activeObj: null,
+        
+        // Drawing
+        isDrawing: false,
+        brushType: 'marker', // 'marker', 'pencil', 'dotted', 'dots'
+        drawColor: '#000000',
+        paths: [], // {points:[], color, type}
+        
+        isMirrored: true
+    };
+
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // --- LIGHT & CAM ---
+    function updateIntensity(v) { document.documentElement.style.setProperty('--light-int', v); }
+    function toggleInvert() { state.isMirrored = !state.isMirrored; video.classList.toggle('mirrored', state.isMirrored); }
+
+    async function startCamera() {
+        const s = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}});
+        video.srcObject = s;
+        switchView('view-camera');
+    }
+
+    function triggerCapture() {
+        if(state.photos.length >= 8) return;
+        const el = document.getElementById('countdown');
+        el.style.display = 'grid';
+        let c = 3; el.innerText = c;
+        const t = setInterval(() => {
+            c--; el.innerText = c;
+            if(c<=0) { clearInterval(t); el.style.display='none'; snap(); }
+        }, 1000);
+    }
+
+    function snap() {
+        const c = document.createElement('canvas');
+        c.width=640; c.height=480;
+        const cx = c.getContext('2d');
+        if(state.isMirrored) { cx.translate(640,0); cx.scale(-1,1); }
+        cx.drawImage(video,0,0,640,480);
+        state.photos.push(c);
+        document.getElementById('shot-count').innerText = state.photos.length + " / 8";
+        if(state.photos.length === 8) finishSession();
+    }
+
+    function finishSession() {
+        video.srcObject.getTracks().forEach(t=>t.stop());
+        setupLayoutSelect();
+        switchView('view-select');
+    }
+
+    // --- SELECTION ---
+    function setupLayoutSelect() {
+        const box = document.getElementById('layout-btns'); box.innerHTML = '';
+        [1,2,4,6].forEach(n => {
+            if(state.photos.length >= n) {
+                const b = document.createElement('button');
+                b.innerText = n; b.className = 'brush-opt';
+                b.onclick = () => { state.targetCount = n; updateSubLayouts(); renderThumbs(); };
+                box.appendChild(b);
+            }
+        });
+        state.targetCount = Math.min(4, state.photos.length);
+        updateSubLayouts();
+        renderThumbs();
+    }
+
+    function updateSubLayouts() {
+        const sub = document.getElementById('sub-layout-btns'); sub.innerHTML = '';
+        state.layoutMode = 'grid'; // Default
+        
+        if(state.targetCount === 2) {
+            ['Horizontal', 'Vertical'].forEach(t => {
+                const b = document.createElement('button'); b.innerText = t; b.className = 'brush-opt';
+                b.onclick = () => { state.layoutMode = t==='Horizontal'?'horiz':'vert'; renderThumbs(); };
+                sub.appendChild(b);
+            });
+            state.layoutMode = 'horiz';
+        } else if (state.targetCount === 4) {
+             ['Grid 2x2', 'Strip'].forEach(t => {
+                const b = document.createElement('button'); b.innerText = t; b.className = 'brush-opt';
+                b.onclick = () => { state.layoutMode = t==='Strip'?'strip':'grid'; renderThumbs(); };
+                sub.appendChild(b);
+            });
+        }
+    }
+
+    function renderThumbs() {
+        const g = document.getElementById('thumb-grid'); g.innerHTML = '';
+        state.photos.forEach((p, i) => {
+            const d = document.createElement('div');
+            d.className = `thumb-wrap ${state.selectedIndices.includes(i)?'selected':''}`;
+            const img = new Image(); img.src = p.toDataURL();
+            d.appendChild(img);
+            d.onclick = () => {
+                const idx = state.selectedIndices.indexOf(i);
+                if(idx>-1) state.selectedIndices.splice(idx,1);
+                else if(state.selectedIndices.length < state.targetCount) state.selectedIndices.push(i);
+                renderThumbs();
+                const btn = document.getElementById('btn-design');
+                btn.style.opacity = state.selectedIndices.length===state.targetCount ? 1 : 0.5;
+            };
+            g.appendChild(d);
+        });
+    }
+
+    function goToEditor() {
+        if(state.selectedIndices.length !== state.targetCount) return;
+        switchView('view-edit');
+        
+        // Canvas Sizing
+        const m = state.layoutMode;
+        if(state.targetCount === 4 && m === 'strip') { canvas.width = 400; canvas.height = 1200; }
+        else if (state.targetCount === 2 && m === 'vert') { canvas.width = 600; canvas.height = 900; }
+        else { canvas.width = 800; canvas.height = 1000; }
+        
+        renderCanvas();
+        setupTouch();
+    }
+
+    // --- RENDER ---
+    function renderCanvas() {
+        const W = canvas.width, H = canvas.height;
+        ctx.clearRect(0,0,W,H);
+        
+        // Background
+        ctx.fillStyle = state.bgColor;
+        ctx.fillRect(0,0,W,H);
+        if(state.bgImage) {
+            // Draw BG image covering frame
+            const i = state.bgImage;
+            const ratio = Math.max(W/i.width, H/i.height);
+            ctx.drawImage(i, (W-i.width*ratio)/2, (H-i.height*ratio)/2, i.width*ratio, i.height*ratio);
+        }
+
+        // Photos
+        const imgs = state.selectedIndices.map(i => state.photos[i]);
+        const g = CONFIG.gap;
+        
+        if(state.targetCount === 1) drawImg(imgs[0], g, g, W-2*g, H-2*g);
+        else if(state.targetCount === 2) {
+            if(state.layoutMode === 'vert') {
+                const h = (H-3*g)/2; drawImg(imgs[0], g, g, W-2*g, h); drawImg(imgs[1], g, 2*g+h, W-2*g, h);
+            } else {
+                const w = (W-3*g)/2; drawImg(imgs[0], g, (H-w*0.75)/2, w, w*0.75); drawImg(imgs[1], 2*g+w, (H-w*0.75)/2, w, w*0.75);
+            }
+        }
+        else if(state.targetCount === 4) {
+            if(state.layoutMode === 'strip') {
+                const h = (H-5*g)/4;
+                imgs.forEach((im,i) => drawImg(im, g, g+i*(h+g), W-2*g, h));
+            } else {
+                const w = (W-3*g)/2, h = w*0.75;
+                const top = (H - (2*h+g))/2;
+                imgs.forEach((im,i) => drawImg(im, g+(i%2)*(w+g), top+Math.floor(i/2)*(h+g), w, h));
+            }
+        }
+
+        // Drawings
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        state.paths.forEach(p => {
+            ctx.beginPath();
+            ctx.strokeStyle = p.color;
+            ctx.lineWidth = p.type === 'pencil' ? 2 : 5;
+            ctx.globalAlpha = p.type === 'pencil' ? 0.7 : 1.0;
+            
+            if(p.type === 'dotted') ctx.setLineDash([5, 10]);
+            else if (p.type === 'dots') ctx.setLineDash([1, 15]);
+            else ctx.setLineDash([]); // marker/pencil
+            
+            if(p.points.length > 0) {
+                ctx.moveTo(p.points[0].x, p.points[0].y);
+                for(let i=1; i<p.points.length; i++) ctx.lineTo(p.points[i].x, p.points[i].y);
+                ctx.stroke();
+            }
+            ctx.globalAlpha = 1.0;
+            ctx.setLineDash([]);
+        });
+
+        // Text Objects
+        state.objects.forEach(o => {
+            ctx.save();
+            ctx.translate(o.x, o.y);
+            ctx.font = `bold 50px ${o.fontFamily}`;
+            ctx.fillStyle = o.color; ctx.textAlign='center'; ctx.textBaseline='middle';
+            ctx.fillText(o.content, 0, 0);
+            if(state.activeObj === o) {
+                ctx.strokeStyle = '#ffb7b2'; ctx.lineWidth=3; ctx.strokeRect(-100,-40,200,80);
+            }
+            ctx.restore();
+        });
+    }
+
+    function drawImg(img, x, y, w, h) {
+        ctx.save();
+        ctx.beginPath(); ctx.rect(x,y,w,h); ctx.clip();
+        const r = Math.max(w/img.width, h/img.height);
+        ctx.drawImage(img, x+(w-img.width*r)/2, y+(h-img.height*r)/2, img.width*r, img.height*r);
+        ctx.restore();
+    }
+
+    // --- EDITOR TOOLS ---
+    function setBgColor(c) { state.bgColor = c; state.bgImage = null; renderCanvas(); }
+    function setBgImage(e) {
+        const f = e.target.files[0]; if(!f) return;
+        const i = new Image(); i.onload = () => { state.bgImage = i; renderCanvas(); };
+        i.src = URL.createObjectURL(f);
+    }
+    
+    function addText() {
+        state.isDrawing = false; updateMenus();
+        const t = prompt("Enter text:");
+        if(t) { state.objects.push({x:canvas.width/2, y:canvas.height/2, content:t, color:'#000', fontFamily:'Quicksand'}); renderCanvas(); }
+    }
+
+    function toggleDraw() {
+        state.isDrawing = !state.isDrawing;
+        state.activeObj = null; // Deselect text
+        updateMenus();
+    }
+    
+    function setBrush(type) { state.brushType = type; updateMenus(); }
+    
+    function updateMenus() {
+        document.getElementById('sub-menu-draw').style.display = state.isDrawing ? 'flex' : 'none';
+        document.getElementById('sub-menu-text').style.display = (!state.isDrawing && state.activeObj) ? 'flex' : 'none';
+        document.getElementById('btn-draw-toggle').classList.toggle('active', state.isDrawing);
+        
+        document.querySelectorAll('.brush-opt').forEach(b => {
+             if(b.innerText.toLowerCase() === state.brushType && state.isDrawing) b.classList.add('active');
+             else b.classList.remove('active');
+        });
+        renderCanvas();
+    }
+
+    // Text Edits
+    function changeFont(f) { if(state.activeObj) state.activeObj.fontFamily = f; renderCanvas(); }
+    function changeTextColor(c) { if(state.activeObj) state.activeObj.color = c; renderCanvas(); }
+    function deleteObject() { state.objects = state.objects.filter(o => o!==state.activeObj); state.activeObj=null; updateMenus(); }
+
+    function download() {
+        state.activeObj = null; renderCanvas();
+        const a = document.createElement('a'); a.download = 'cloud_studio.png'; a.href = canvas.toDataURL(); a.click();
+    }
+
+    // --- INTERACTION ---
+    function setupTouch() {
+        let isDrag = false;
+        let last = null;
+        let currentPath = null;
+
+        const getPos = (e) => {
+            const r = canvas.getBoundingClientRect();
+            const tx = e.touches?e.touches[0].clientX:e.clientX;
+            const ty = e.touches?e.touches[0].clientY:e.clientY;
+            return { x: (tx-r.left)*(canvas.width/r.width), y: (ty-r.top)*(canvas.height/r.height) };
+        };
+
+        canvas.addEventListener('pointerdown', e => {
+            const p = getPos(e);
+            
+            if(state.isDrawing) {
+                isDrag = true;
+                currentPath = { points:[p], color:state.drawColor, type:state.brushType };
+                state.paths.push(currentPath);
+                renderCanvas();
+            } else {
+                // Object select
+                let hit = null;
+                state.objects.forEach(o => {
+                    if(Math.abs(p.x - o.x) < 100 && Math.abs(p.y - o.y) < 50) hit = o;
+                });
+                state.activeObj = hit;
+                updateMenus();
+                if(hit) { isDrag = true; last = p; }
+                renderCanvas();
+            }
+        });
+
+        canvas.addEventListener('pointermove', e => {
+            if(!isDrag) return;
+            const p = getPos(e);
+            e.preventDefault();
+            
+            if(state.isDrawing && currentPath) {
+                currentPath.points.push(p);
+                renderCanvas();
+            } else if(state.activeObj) {
+                state.activeObj.x += p.x - last.x;
+                state.activeObj.y += p.y - last.y;
+                last = p;
+                renderCanvas();
+            }
+        });
+
+        canvas.addEventListener('pointerup', () => { isDrag = false; currentPath = null; });
+    }
+
+    function switchView(v) {
+        document.querySelectorAll('.view').forEach(e => e.classList.remove('active'));
+        document.getElementById(v).classList.add('active');
+    }
+</script>
+</body>
+</html>

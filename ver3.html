@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Purikura Cute</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=M+PLUS+Rounded+1c:wght@500;800&display=swap');
+
+        :root {
+            --machine-pink: #ff9eb5;
+            --machine-stripe: #ffc2d1;
+            --screen-bg: #fff;
+            --primary: #ff5c8d;
+            --accent: #5e3a47;
+            --led-glow: #fff0f5;
+        }
+
+        * { box-sizing: border-box; touch-action: none; user-select: none; -webkit-user-select: none; }
+
+        body {
+            background-color: #e5e5f7;
+            /* Polka dot background pattern */
+            background-image: radial-gradient(#ff9eb5 2px, transparent 2px);
+            background-size: 30px 30px;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            overflow: hidden;
+        }
+
+        /* --- THE PURIKURA MACHINE CABINET --- */
+        .arcade-cabinet {
+            width: 100%;
+            max-width: 500px;
+            height: 100%;
+            max-height: 900px;
+            background: repeating-linear-gradient(
+                45deg,
+                var(--machine-pink),
+                var(--machine-pink) 20px,
+                var(--machine-stripe) 20px,
+                var(--machine-stripe) 40px
+            );
+            border-radius: 20px;
+            box-shadow: 
+                0 20px 50px rgba(0,0,0,0.3),
+                inset 0 0 0 10px rgba(255,255,255,0.4);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            padding: 15px;
+        }
+
+        .marquee {
+            background: #fff;
+            border-radius: 50px;
+            padding: 5px 0;
+            text-align: center;
+            font-family: 'Fredoka', sans-serif;
+            color: var(--primary);
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            box-shadow: 0 5px 0 rgba(0,0,0,0.1);
+            margin-bottom: 10px;
+            border: 4px solid #fff;
+            z-index: 10;
+        }
+
+        /* --- SCREEN AREA --- */
+        .screen-bezel {
+            flex: 1;
+            background: #333;
+            border-radius: 15px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px #000;
+        }
+
+        .crt-screen {
+            background: var(--screen-bg);
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .screen-content {
+            display: none;
+            width: 100%;
+            height: 100%;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .screen-content.active { display: flex; }
+
+        /* --- START SCREEN (Coin Insert) --- */
+        .coin-slot-area {
+            background: #ccc;
+            border: 2px solid #999;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .coin-slot-area:active { transform: scale(0.95); }
+
+        .coin-hole {
+            width: 10px;
+            height: 60px;
+            background: #000;
+            border-radius: 5px;
+            border: 2px solid #888;
+            margin-bottom: 10px;
+        }
+        
+        .insert-text {
+            color: #ff0000;
+            font-weight: 800;
+            animation: blink 1s infinite;
+        }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* --- CAMERA VIEW --- */
+        .camera-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: #000;
+        }
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+        
+        /* Floating Controls on Camera */
+        .cam-overlay-btn {
+            position: absolute;
+            background: rgba(255,255,255,0.8);
+            border-radius: 30px;
+            padding: 10px 20px;
+            font-weight: bold;
+            color: var(--accent);
+            border: 2px solid var(--primary);
+            box-shadow: 0 4px 0 var(--primary);
+            z-index: 20;
+        }
+        .btn-light { top: 20px; right: 20px; }
+        .btn-snap { bottom: 30px; left: 50%; transform: translateX(-50%); font-size: 1.2rem; padding: 15px 40px; }
+        .btn-snap:active { transform: translateX(-50%) translateY(4px); box-shadow: none; }
+
+        /* --- CANVAS EDITOR --- */
+        #final-canvas {
+            max-width: 95%;
+            max-height: 70%;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            margin: 10px 0;
+            /* Touch handling */
+            touch-action: none;
+        }
+
+        /* Editor Toolbar */
+        .edit-controls {
+            background: #fff;
+            width: 100%;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            border-top: 4px solid var(--machine-pink);
+        }
+
+        .scroll-row {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+            justify-content: flex-start;
+        }
+
+        .tool-btn {
+            background: #fff;
+            border: 2px solid #eee;
+            border-radius: 12px;
+            min-width: 50px;
+            height: 50px;
+            font-size: 1.5rem;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .tool-btn.active { border-color: var(--primary); background: #fff0f5; }
+
+        .frame-dot {
+            width: 40px; height: 40px; border-radius: 50%;
+            border: 2px solid #ddd;
+            flex-shrink: 0;
+        }
+
+        /* --- PHYSICAL BUTTONS (Bottom of Cabinet) --- */
+        .machine-controls {
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding-bottom: 10px;
+        }
+        
+        .big-btn {
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            border: none;
+            box-shadow: 0 6px 0 rgba(0,0,0,0.2), 0 10px 20px rgba(0,0,0,0.2);
+            font-size: 2rem;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            transition: all 0.1s;
+            position: relative;
+        }
+        .big-btn:active {
+            transform: translateY(6px);
+            box-shadow: 0 0 0 rgba(0,0,0,0.2);
+        }
+        .btn-red { background: #ff5c8d; color: white; border: 4px solid #ff3366; }
+        .btn-blue { background: #4dabf7; color: white; border: 4px solid #339af0; }
+        .btn-green { background: #69db7c; color: white; border: 4px solid #51cf66; }
+
+    </style>
+</head>
+<body>
+
+    <div class="arcade-cabinet">
+        <div class="marquee">✨ PURIKURA・CLUB ✨</div>
+
+        <div class="screen-bezel">
+            <div class="crt-screen">
+                
+                <div id="screen-start" class="screen-content active">
+                    <h1 style="color:var(--primary); font-size:2rem; margin-bottom:5px;">KAWAII</h1>
+                    <h2 style="color:#888; font-size:1rem; margin-top:0;">PHOTO BOOTH</h2>
+                    
+                    <div class="coin-slot-area" onclick="startGame()">
+                        <div class="coin-hole"></div>
+                        <span class="insert-text">INSERT COIN (TAP)</span>
+                        <div style="font-size: 0.7rem; color: #666; margin-top:5px;">¥500</div>
+                    </div>
+                    
+                    <div style="margin-top:20px; font-size:0.8rem; color:#aaa; text-align:center;">
+                        Touch screen enabled<br>Best for Mobile
+                    </div>
+                </div>
+
+                <div id="screen-camera" class="screen-content">
+                    <div class="camera-container">
+                        <div id="flash-effect" style="position:absolute; inset:0; background:white; z-index:50; opacity:0; pointer-events:none; transition:opacity 0.1s;"></div>
+                        <div id="count-display" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:white; font-size:6rem; z-index:40; display:none; text-shadow:0 0 10px black;">3</div>
+                        
+                        <video id="video" autoplay playsinline></video>
+                        
+                        <img id="idol-overlay" src="" style="display:none; position:absolute; bottom:0; right:0; height:80%; pointer-events:none; z-index:10;">
+
+                        <button class="cam-overlay-btn btn-light" onclick="cycleLights()">💡 Light FX</button>
+                        <button class="cam-overlay-btn btn-snap" onclick="startPhotoRun()">📸 TAKE</button>
+                    </div>
+                </div>
+
+                <div id="screen-edit" class="screen-content">
+                    <canvas id="final-canvas"></canvas>
+                    
+                    <div class="edit-controls">
+                        <div class="scroll-row">
+                            <button class="tool-btn" onclick="setMode('sticker')">🎀</button>
+                            <button class="tool-btn" onclick="addTextPrompt()">✍️</button>
+                            <button class="tool-btn" onclick="document.getElementById('idol-upload').click()">👥</button>
+                            <button class="tool-btn" onclick="document.getElementById('img-upload').click()">🖼️</button>
+                            <div style="width:2px; background:#eee; margin:0 5px;"></div>
+                            <button class="tool-btn" style="color:green;" onclick="savePhoto()">💾</button>
+                            <button class="tool-btn" style="color:red;" onclick="location.reload()">↻</button>
+                        </div>
+
+                        <div class="scroll-row" id="frame-picker">
+                            </div>
+                    </div>
+
+                    <input type="file" id="idol-upload" hidden accept="image/*" onchange="handleIdol(event)">
+                    <input type="file" id="img-upload" hidden accept="image/*" onchange="handleAddImage(event)">
+                </div>
+
+            </div>
+        </div>
+
+        <div class="machine-controls">
+            <button class="big-btn btn-blue" onclick="cycleLights()">💡</button>
+            <button class="big-btn btn-green" onclick="alert('Drawing Mode: Use finger to move items. Double tap to delete.')">🎨</button>
+            <button class="big-btn btn-red" onclick="savePhoto()">♥</button>
+        </div>
+    </div>
+
+<script>
+    /** CONSTANTS & SETUP **/
+    const CANVAS_W = 600;
+    const PHOTO_ASPECT = 3/4; 
+    const CANVAS_H = (CANVAS_W * PHOTO_ASPECT * 4) + 200; // 4 photos + spacing
+    
+    // State
+    let state = {
+        photos: [],
+        lights: ['none', 'rgba(255,0,0,0.2)', 'rgba(0,0,255,0.2)', 'rgba(255,192,203,0.3)', 'rgba(255,255,255,0.2)'],
+        lightIdx: 0,
+        frameColor: '#ffffff',
+        objects: [], // {type, img, text, x, y, width, height, rotation}
+        activeIdx: -1,
+        dragging: false,
+        transforming: false // Rotating/Scaling
+    };
+
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('final-canvas');
+    const ctx = canvas.getContext('2d');
+
+    /** 1. NAVIGATION & UI **/
+    function showScreen(id) {
+        document.querySelectorAll('.screen-content').forEach(el => el.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    async function startGame() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: "user", width: { ideal: 1280 } }, 
+                audio: false 
+            });
+            video.srcObject = stream;
+            showScreen('screen-camera');
+            initFramePicker();
+        } catch (e) {
+            alert("Camera needed! Ensure HTTPS.");
+        }
+    }
+
+    function cycleLights() {
+        state.lightIdx = (state.lightIdx + 1) % state.lights.length;
+        const color = state.lights[state.lightIdx];
+        
+        // Apply filter to camera view
+        const overlay = document.querySelector('.camera-container');
+        if(state.lightIdx === 0) {
+            overlay.style.boxShadow = "none";
+            video.style.filter = "none";
+        } else {
+            overlay.style.boxShadow = `inset 0 0 50px ${color}`;
+            video.style.filter = `drop-shadow(0 0 10px ${color})`;
+        }
+    }
+
+    /** 2. CAMERA LOGIC **/
+    async function startPhotoRun() {
+        state.photos = [];
+        document.querySelector('.btn-snap').style.display = 'none';
+        
+        for(let i=0; i<4; i++) {
+            await countdown(3);
+            snap();
+            await wait(800);
+        }
+        
+        video.srcObject.getTracks().forEach(t => t.stop());
+        generateStrip();
+        showScreen('screen-edit');
+    }
+
+    function countdown(num) {
+        return new Promise(resolve => {
+            const el = document.getElementById('count-display');
+            el.style.display = 'block';
+            let c = num;
+            el.innerText = c;
+            const int = setInterval(() => {
+                c--;
+                if(c>0) el.innerText = c;
+                else {
+                    clearInterval(int);
+                    el.style.display = 'none';
+                    resolve();
+                }
+            }, 1000);
+        });
+    }
+
+    function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    function snap() {
+        const flash = document.getElementById('flash-effect');
+        flash.style.opacity = 1;
+        setTimeout(() => flash.style.opacity = 0, 100);
+
+        const temp = document.createElement('canvas');
+        temp.width = 640; 
+        temp.height = 480; // 4:3
+        const tCtx = temp.getContext('2d');
+        
+        // Mirror & Draw Video
+        tCtx.translate(640, 0);
+        tCtx.scale(-1, 1);
+        
+        // Aspect Fit
+        const vRatio = video.videoWidth / video.videoHeight;
+        const tRatio = 640/480;
+        let sx, sy, sw, sh;
+        
+        if(vRatio > tRatio) {
+            sh = video.videoHeight; sw = sh * tRatio;
+            sy = 0; sx = (video.videoWidth - sw)/2;
+        } else {
+            sw = video.videoWidth; sh = sw / tRatio;
+            sx = 0; sy = (video.videoHeight - sh)/2;
+        }
+        tCtx.drawImage(video, sx, sy, sw, sh, 0, 0, 640, 480);
+
+        // Draw Idol Overlay if active
+        const idol = document.getElementById('idol-overlay');
+        if(idol.style.display !== 'none' && idol.src) {
+             tCtx.scale(-1, 1); // Un-mirror for idol
+             tCtx.translate(-640, 0);
+             const iH = 480 * 0.8;
+             const iW = (idol.naturalWidth / idol.naturalHeight) * iH;
+             tCtx.drawImage(idol, 640 - iW - 20, 480 - iH, iW, iH);
+        }
+        
+        // Apply Light Tint
+        if(state.lightIdx !== 0) {
+            tCtx.fillStyle = state.lights[state.lightIdx];
+            tCtx.fillRect(0,0,640,480);
+        }
+
+        state.photos.push(temp);
+    }
+
+    /** 3. EDITOR & CANVAS LOGIC **/
+    function generateStrip() {
+        // Init canvas size
+        canvas.width = CANVAS_W;
+        canvas.height = CANVAS_H;
+        renderCanvas();
+    }
+
+    function renderCanvas() {
+        // 1. Background
+        ctx.fillStyle = state.frameColor;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // 2. Photos
+        const pWidth = CANVAS_W - 60; // 30px padding each side
+        const pHeight = pWidth * (3/4);
+        
+        state.photos.forEach((p, i) => {
+            const y = 30 + (i * (pHeight + 20));
+            ctx.drawImage(p, 30, y, pWidth, pHeight);
+            
+            // Photo Outline
+            ctx.strokeStyle = "rgba(0,0,0,0.05)";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(30, y, pWidth, pHeight);
+        });
+
+        // 3. Footer Date
+        ctx.fillStyle = "#aaa";
+        ctx.font = "bold 24px 'M PLUS Rounded 1c'";
+        ctx.textAlign = "center";
+        ctx.fillText("PURIKURA • " + new Date().toLocaleDateString(), CANVAS_W/2, canvas.height - 40);
+
+        // 4. Objects (Stickers/Text)
+        state.objects.forEach((obj, i) => {
+            ctx.save();
+            ctx.translate(obj.x, obj.y);
+            ctx.rotate(obj.rotation);
+            
+            if(obj.type === 'img') {
+                ctx.drawImage(obj.img, -obj.width/2, -obj.height/2, obj.width, obj.height);
+            } else if (obj.type === 'text') {
+                ctx.font = `bold ${obj.fontSize}px 'Fredoka'`;
+                ctx.fillStyle = obj.color;
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(obj.text, 0, 0);
+            }
+
+            // Selection Box (If active)
+            if(i === state.activeIdx) {
+                ctx.strokeStyle = "#00bcd4";
+                ctx.lineWidth = 2;
+                ctx.strokeRect(-obj.width/2 - 5, -obj.height/2 - 5, obj.width+10, obj.height+10);
+                
+                // Draw Rotate/Scale Handle (Bottom Right)
+                ctx.fillStyle = "#00bcd4";
+                ctx.beginPath();
+                ctx.arc(obj.width/2 + 10, obj.height/2 + 10, 15, 0, Math.PI*2);
+                ctx.fill();
+                
+                ctx.fillStyle = "white";
+                ctx.font = "16px monospace";
+                ctx.fillText("↻", obj.width/2 + 10, obj.height/2 + 11);
+            }
+            ctx.restore();
+        });
+    }
+
+    /** 4. INTERACTION (TOUCH/MOUSE) **/
+    // We need to differentiate between dragging the object (move) 
+    // and dragging the handle (rotate/scale)
+    let startX, startY;
+    let startRot = 0;
+    let startDist = 0;
+    
+    function getEventPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+            x: (clientX - rect.left) * (canvas.width / rect.width),
+            y: (clientY - rect.top) * (canvas.height / rect.height)
+        };
+    }
+
+    canvas.addEventListener('pointerdown', (e) => {
+        const pos = getEventPos(e);
+        startX = pos.x;
+        startY = pos.y;
+        
+        // Check if hitting the handle of active object
+        if(state.activeIdx !== -1) {
+            const obj = state.objects[state.activeIdx];
+            // Math to find handle position in world space
+            const cos = Math.cos(obj.rotation);
+            const sin = Math.sin(obj.rotation);
+            // Handle is at local (w/2 + 10, h/2 + 10)
+            const hx = obj.x + (obj.width/2 + 10)*cos - (obj.height/2 + 10)*sin;
+            const hy = obj.y + (obj.width/2 + 10)*sin + (obj.height/2 + 10)*cos;
+            
+            const distToHandle = Math.hypot(pos.x - hx, pos.y - hy);
+            if(distToHandle < 30) {
+                state.transforming = true;
+                // Calculate initial angle/distance relative to center
+                startRot = Math.atan2(pos.y - obj.y, pos.x - obj.x) - obj.rotation;
+                startDist = Math.hypot(pos.x - obj.x, pos.y - obj.y);
+                return;
+            }
+        }
+
+        // Check Hit Test for Objects (Reverse order for z-index)
+        let hit = -1;
+        for(let i=state.objects.length-1; i>=0; i--) {
+            const obj = state.objects[i];
+            // Simple bounding box check (ignoring rotation for selection ease)
+            if(Math.abs(pos.x - obj.x) < obj.width/2 && Math.abs(pos.y - obj.y) < obj.height/2) {
+                hit = i;
+                break;
+            }
+        }
+        
+        state.activeIdx = hit;
+        state.dragging = (hit !== -1);
+        renderCanvas();
+    });
+
+    canvas.addEventListener('pointermove', (e) => {
+        if(!state.dragging && !state.transforming) return;
+        const pos = getEventPos(e);
+        const obj = state.objects[state.activeIdx];
+
+        if(state.transforming) {
+            // New Distance & Angle from center
+            const currDist = Math.hypot(pos.x - obj.x, pos.y - obj.y);
+            const currAngle = Math.atan2(pos.y - obj.y, pos.x - obj.x);
+            
+            // 1. Rotate
+            obj.rotation = currAngle - startRot;
+            
+            // 2. Scale (Update Width/Height proportionally)
+            const scaleFactor = currDist / startDist;
+            obj.width *= scaleFactor;
+            obj.height *= scaleFactor;
+            if(obj.type === 'text') obj.fontSize *= scaleFactor;
+
+            startDist = currDist; // Reset for next frame
+        } 
+        else if (state.dragging) {
+            obj.x += (pos.x - startX);
+            obj.y += (pos.y - startY);
+            startX = pos.x;
+            startY = pos.y;
+        }
+        renderCanvas();
+    });
+
+    canvas.addEventListener('pointerup', () => {
+        state.dragging = false;
+        state.transforming = false;
+    });
+
+    // Double tap to delete
+    canvas.addEventListener('dblclick', (e) => {
+        if(state.activeIdx !== -1) {
+            state.objects.splice(state.activeIdx, 1);
+            state.activeIdx = -1;
+            renderCanvas();
+        }
+    });
+
+
+    /** 5. ADDING ASSETS **/
+    // Stickers
+    function setMode(mode) {
+        if(mode === 'sticker') {
+            const stickers = ['🎀','✨','🐱','💖','👑','🍡','🌸','🕶️'];
+            // Just add random for demo, normally opens a tray
+            const s = stickers[Math.floor(Math.random()*stickers.length)];
+            addTextObj(s, 100);
+        }
+    }
+
+    function addTextPrompt() {
+        const t = prompt("Text:");
+        if(t) addTextObj(t, 60, '#ff5c8d');
+    }
+
+    function addTextObj(txt, size, color='#000') {
+        ctx.font = `bold ${size}px 'Fredoka'`;
+        const m = ctx.measureText(txt);
+        state.objects.push({
+            type: 'text', text: txt, color: color, fontSize: size,
+            x: CANVAS_W/2, y: CANVAS_H/2, 
+            width: m.width, height: size, rotation: 0
+        });
+        state.activeIdx = state.objects.length-1;
+        renderCanvas();
+    }
+
+    function handleAddImage(e) {
+        const f = e.target.files[0];
+        if(!f) return;
+        const r = new FileReader();
+        r.onload = (evt) => {
+            const img = new Image();
+            img.onload = () => {
+                const aspect = img.width / img.height;
+                state.objects.push({
+                    type: 'img', img: img,
+                    x: CANVAS_W/2, y: CANVAS_H/2,
+                    width: 200, height: 200/aspect, rotation: 0
+                });
+                state.activeIdx = state.objects.length-1;
+                renderCanvas();
+            };
+            img.src = evt.target.result;
+        };
+        r.readAsDataURL(f);
+    }
+
+    // Post-Processing Frame Color
+    function initFramePicker() {
+        const d = document.getElementById('frame-picker');
+        d.innerHTML = '';
+        const colors = ['#ffffff', '#ffebf0', '#e3f2fd', '#fff3e0', '#f3e5f5', '#222'];
+        colors.forEach(c => {
+            const b = document.createElement('div');
+            b.className = 'frame-dot';
+            b.style.background = c;
+            b.onclick = () => {
+                state.frameColor = c;
+                renderCanvas();
+            };
+            d.appendChild(b);
+        });
+    }
+
+    // Idol for Camera
+    function handleIdol(e) {
+        const f = e.target.files[0];
+        if(!f) return;
+        const url = URL.createObjectURL(f);
+        const img = document.getElementById('idol-overlay');
+        img.src = url;
+        img.style.display = 'block';
+    }
+
+    function savePhoto() {
+        state.activeIdx = -1; // hide handles
+        renderCanvas();
+        const a = document.createElement('a');
+        a.download = `Purikura_${Date.now()}.png`;
+        a.href = canvas.toDataURL();
+        a.click();
+    }
+
+</script>
+</body>
+</html>

@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Print Seal Arcade</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700&family=M+PLUS+Rounded+1c:wght@500;800&display=swap');
+
+        :root {
+            --plastic-white: #f0f0f0;
+            --plastic-pink: #ff69b4;
+            --plastic-dark-pink: #d1478c;
+            --accent-yellow: #ffd700;
+            --screen-bg: #fff;
+            --cab-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        }
+
+        * { box-sizing: border-box; touch-action: none; user-select: none; -webkit-user-select: none; }
+
+        body {
+            background-color: #ffeef5;
+            background-image: radial-gradient(#ffb7d6 20%, transparent 20%);
+            background-size: 20px 20px;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            overflow: hidden;
+        }
+
+        /* --- THE CABINET --- */
+        .cabinet {
+            width: 100%;
+            max-width: 450px;
+            height: 98vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            filter: drop-shadow(0 20px 30px rgba(0,0,0,0.4));
+        }
+
+        /* 1. ARCH HEADER (Rainbow) */
+        .cab-header {
+            height: 80px;
+            background: linear-gradient(180deg, #fff 10%, #f0f0f0 100%);
+            border-radius: 100px 100px 0 0;
+            position: relative;
+            z-index: 2;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            padding-bottom: 10px;
+            border: 4px solid #fff;
+            box-shadow: inset 0 -10px 10px rgba(0,0,0,0.05);
+        }
+        .rainbow-sticker {
+            background: linear-gradient(to right, #ff0000, #ffa500, #ffff00, #008000, #0000ff, #4b0082, #ee82ee);
+            width: 90%;
+            height: 60px;
+            border-radius: 80px 80px 0 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-family: 'Fredoka', cursive;
+            font-size: 2rem;
+            text-shadow: 2px 2px 0 #000;
+            border: 3px solid #fff;
+        }
+
+        /* 2. MAIN BODY (Screen + Lights) */
+        .cab-body {
+            flex: 1;
+            background: var(--plastic-white);
+            display: flex;
+            position: relative;
+            padding: 0 15px;
+            border-left: 5px solid #ddd;
+            border-right: 5px solid #ddd;
+        }
+
+        .side-light {
+            width: 20px;
+            background: #fff;
+            border-radius: 10px;
+            margin: 10px 5px;
+            box-shadow: inset 0 0 10px rgba(255,200,200,0.5);
+            animation: glow 2s infinite alternate;
+        }
+        @keyframes glow { from { background: #fff; box-shadow: 0 0 5px #fff; } to { background: #ffeb3b; box-shadow: 0 0 20px #ffeb3b; } }
+
+        .screen-bezel {
+            flex: 1;
+            background: #333;
+            border-radius: 10px;
+            padding: 5px;
+            margin-top: 10px;
+            margin-bottom: 0; /* Flush with control deck */
+            display: flex;
+            flex-direction: column;
+            box-shadow: inset 0 0 15px #000;
+        }
+
+        .screen {
+            flex: 1;
+            background: #fff;
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- SCREENS CONTENT --- */
+        .view {
+            display: none;
+            width: 100%;
+            height: 100%;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .view.active { display: flex; }
+
+        /* Start Screen */
+        .attract-mode {
+            text-align: center;
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+        /* Camera */
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1); /* Mirror */
+        }
+        .flash { position:absolute; inset:0; background:white; opacity:0; pointer-events:none; transition: opacity 0.1s; z-index: 50; }
+        .countdown { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size: 6rem; color: #fff; text-shadow: 0 5px 0 #000; z-index: 40; display:none; font-family: 'Fredoka'; }
+
+        /* Canvas Editor */
+        #final-canvas {
+            max-width: 100%;
+            max-height: 80%;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            touch-action: none;
+        }
+        .editor-tools {
+            height: 60px;
+            width: 100%;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            overflow-x: auto;
+            padding: 5px;
+            border-top: 2px solid #eee;
+        }
+        .sticker-btn {
+            font-size: 1.5rem;
+            background: none;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            min-width: 45px; height: 45px;
+            cursor: pointer;
+        }
+
+        /* 3. CONTROL DECK (Pink Area) */
+        .control-deck {
+            height: 160px;
+            background: linear-gradient(180deg, var(--plastic-pink) 0%, var(--plastic-dark-pink) 100%);
+            border-radius: 0 0 20px 20px;
+            position: relative;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: inset 0 2px 5px rgba(255,255,255,0.3), 0 10px 20px rgba(0,0,0,0.2);
+            z-index: 5;
+            /* Slant effect */
+            transform: perspective(500px) rotateX(5deg);
+            margin-top: -5px;
+        }
+
+        /* Fake Coin Slot */
+        .coin-area {
+            width: 80px;
+            height: 100px;
+            background: var(--accent-yellow);
+            border: 3px solid #eebb00;
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+        }
+        .coin-area:active { transform: scale(0.95); }
+        .coin-slot-hole {
+            width: 6px; height: 35px; background: #000; border-radius: 3px; margin: 5px 0;
+            border: 1px solid #fff;
+        }
+        .price-tag { font-size: 0.7rem; font-weight: bold; color: #d00000; background: #fff; padding: 2px 5px; border-radius: 3px; }
+
+        /* Physical Buttons */
+        .button-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        .phys-btn {
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            border: none;
+            color: white;
+            font-weight: bold;
+            font-size: 0.9rem;
+            cursor: pointer;
+            box-shadow: 0 5px 0 rgba(0,0,0,0.3), 0 8px 10px rgba(0,0,0,0.3);
+            transition: all 0.1s;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .phys-btn:active {
+            transform: translateY(5px);
+            box-shadow: 0 0 0 rgba(0,0,0,0.3);
+        }
+        .btn-ok { background: #4caf50; border: 2px solid #2e7d32; }
+        .btn-light { background: #2196f3; border: 2px solid #1565c0; }
+        
+        .label { font-size: 0.7rem; margin-top: 2px; opacity: 0.8; }
+
+        /* Return Slot (Visual only) */
+        .return-slot {
+            position: absolute;
+            bottom: -60px; left: 50%; transform: translateX(-50%);
+            width: 120px; height: 50px;
+            background: #e0e0e0;
+            border-radius: 0 0 10px 10px;
+            border: 2px solid #ccc;
+            border-top: none;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="cabinet">
+        <div class="cab-header">
+            <div class="rainbow-sticker">★ Print Seal ★</div>
+        </div>
+
+        <div class="cab-body">
+            <div class="side-light"></div>
+            
+            <div class="screen-bezel">
+                <div class="screen">
+                    <div id="view-start" class="view active">
+                        <div class="attract-mode">
+                            <h1 style="color:#ff69b4; font-size:3rem; margin:0;">KAWAII</h1>
+                            <p style="color:#888;">Insert Coin to Start</p>
+                            <div style="font-size:3rem;">👇</div>
+                        </div>
+                    </div>
+
+                    <div id="view-camera" class="view">
+                        <div class="flash" id="flash"></div>
+                        <div class="countdown" id="countdown">3</div>
+                        <video id="video" autoplay playsinline></video>
+                        <div id="light-overlay" style="position:absolute; inset:0; pointer-events:none; transition:0.3s;"></div>
+                    </div>
+
+                    <div id="view-edit" class="view">
+                        <canvas id="final-canvas"></canvas>
+                        
+                        <div class="editor-tools">
+                            <button class="sticker-btn" onclick="addSticker('🎀')">🎀</button>
+                            <button class="sticker-btn" onclick="addSticker('✨')">✨</button>
+                            <button class="sticker-btn" onclick="addSticker('🐱')">🐱</button>
+                            <button class="sticker-btn" onclick="addSticker('💖')">💖</button>
+                            <button class="sticker-btn" onclick="addSticker('👑')">👑</button>
+                            <div style="width:1px; background:#ddd; height:30px; margin:0 5px;"></div>
+                            <div id="frame-picker" style="display:flex; gap:5px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="side-light"></div>
+        </div>
+
+        <div class="control-deck">
+            <div class="coin-area" onclick="insertCoin()">
+                <div class="price-tag">1 PLAY ¥300</div>
+                <div class="coin-slot-hole"></div>
+                <div style="font-size:0.6rem; color:#555; margin-top:2px;">COIN</div>
+            </div>
+
+            <div class="button-group">
+                <button class="phys-btn btn-light" onclick="toggleLights()">
+                    💡
+                    <span class="label">LIGHT</span>
+                </button>
+                <button class="phys-btn btn-ok" id="main-action-btn" onclick="handleOk()">
+                    OK
+                    <span class="label">SNAP</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="return-slot"></div>
+    </div>
+
+<script>
+    const CONFIG = {
+        w: 600, h: 800, // Canvas resolution
+        colors: ['transparent', 'rgba(255,192,203,0.2)', 'rgba(173,216,230,0.2)', 'rgba(255,255,255,0.2)']
+    };
+
+    let state = {
+        mode: 'start', // start, camera, edit
+        photos: [],
+        lightIdx: 0,
+        objects: [], // {type, content, x, y, scale, rot}
+        activeObj: null,
+        frameColor: '#fff',
+        isMirrored: true
+    };
+
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('final-canvas');
+    const ctx = canvas.getContext('2d');
+    const actionBtn = document.getElementById('main-action-btn');
+
+    // --- 1. NAVIGATION ---
+    function switchView(id) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    function insertCoin() {
+        if(state.mode !== 'start') return;
+        
+        // Sound effect simulation
+        const audio = new AudioContext(); // Just to wake up audio
+        
+        startCamera();
+    }
+
+    // --- 2. CAMERA ---
+    async function startCamera() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: 'user', width: {ideal: 1280} }, 
+                audio: false 
+            });
+            video.srcObject = stream;
+            state.mode = 'camera';
+            switchView('view-camera');
+            actionBtn.querySelector('.label').innerText = "SNAP";
+        } catch(e) {
+            alert("Camera access required!");
+        }
+    }
+
+    function toggleLights() {
+        if(state.mode !== 'camera') return;
+        state.lightIdx = (state.lightIdx + 1) % CONFIG.colors.length;
+        document.getElementById('light-overlay').style.backgroundColor = CONFIG.colors[state.lightIdx];
+    }
+
+    // Capture Logic
+    function handleOk() {
+        if(state.mode === 'camera') {
+            startCountdown();
+        } else if (state.mode === 'edit') {
+            savePhoto();
+        }
+    }
+
+    async function startCountdown() {
+        actionBtn.disabled = true;
+        state.photos = []; // Reset
+        
+        for(let i=0; i<4; i++) {
+            await doCount(3);
+            snap();
+            await new Promise(r => setTimeout(r, 800)); // Pause between shots
+        }
+        
+        video.srcObject.getTracks().forEach(t => t.stop());
+        generateEditor();
+    }
+
+    function doCount(num) {
+        return new Promise(resolve => {
+            const el = document.getElementById('countdown');
+            el.style.display = 'block';
+            let c = num;
+            el.innerText = c;
+            const int = setInterval(() => {
+                c--;
+                if(c > 0) el.innerText = c;
+                else {
+                    clearInterval(int);
+                    el.style.display = 'none';
+                    resolve();
+                }
+            }, 1000);
+        });
+    }
+
+    function snap() {
+        const flash = document.getElementById('flash');
+        flash.style.opacity = 1;
+        setTimeout(() => flash.style.opacity = 0, 100);
+
+        const temp = document.createElement('canvas');
+        temp.width = 480; temp.height = 640;
+        const tCtx = temp.getContext('2d');
+        
+        // Draw video (Mirrored)
+        tCtx.translate(480, 0);
+        tCtx.scale(-1, 1);
+        
+        // Cover fit
+        const vRatio = video.videoWidth / video.videoHeight;
+        const cRatio = 480/640;
+        let sx, sy, sw, sh;
+        if(vRatio > cRatio) {
+            sh = video.videoHeight; sw = sh * cRatio;
+            sy = 0; sx = (video.videoWidth - sw)/2;
+        } else {
+            sw = video.videoWidth; sh = sw / cRatio;
+            sx = 0; sy = (video.videoHeight - sh)/2;
+        }
+        tCtx.drawImage(video, sx, sy, sw, sh, 0, 0, 480, 640);
+
+        // Apply Light Filter
+        const color = CONFIG.colors[state.lightIdx];
+        if(color !== 'transparent') {
+            tCtx.fillStyle = color;
+            tCtx.fillRect(0,0,480,640);
+        }
+
+        state.photos.push(temp);
+    }
+
+    // --- 3. EDITOR ---
+    function generateEditor() {
+        state.mode = 'edit';
+        switchView('view-edit');
+        actionBtn.querySelector('.label').innerText = "SAVE";
+        actionBtn.disabled = false;
+        
+        // Init Canvas
+        canvas.width = CONFIG.w;
+        canvas.height = CONFIG.h;
+        
+        // Init Frame Colors
+        const colors = ['#fff', '#ffc0cb', '#b0e0e6', '#ffe4e1'];
+        const picker = document.getElementById('frame-picker');
+        picker.innerHTML = '';
+        colors.forEach(c => {
+            const b = document.createElement('div');
+            b.style.width = '30px'; b.style.height = '30px';
+            b.style.background = c; b.style.borderRadius = '50%';
+            b.style.border = '2px solid #ddd';
+            b.onclick = () => { state.frameColor = c; render(); };
+            picker.appendChild(b);
+        });
+
+        render();
+    }
+
+    function render() {
+        // 1. Background
+        ctx.fillStyle = state.frameColor;
+        ctx.fillRect(0, 0, CONFIG.w, CONFIG.h);
+        
+        // 2. Photos (2x2 Grid)
+        const pad = 20;
+        const pw = (CONFIG.w - (pad*3)) / 2;
+        const ph = pw * (4/3);
+        
+        state.photos.forEach((p, i) => {
+            const col = i % 2;
+            const row = Math.floor(i / 2);
+            const x = pad + (col * (pw + pad));
+            const y = pad + (row * (ph + pad));
+            
+            ctx.drawImage(p, x, y, pw, ph);
+            // Outline
+            ctx.strokeStyle = "rgba(0,0,0,0.1)";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x,y,pw,ph);
+        });
+
+        // 3. Stickers
+        state.objects.forEach(obj => {
+            ctx.save();
+            ctx.translate(obj.x, obj.y);
+            ctx.rotate(obj.rot);
+            ctx.scale(obj.scale, obj.scale);
+            
+            ctx.font = "60px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(obj.content, 0, 0);
+            
+            // Draw Handle if active
+            if(obj === state.activeObj) {
+                // Box
+                ctx.strokeStyle = "#00f";
+                ctx.lineWidth = 1;
+                ctx.strokeRect(-35, -35, 70, 70);
+                
+                // Handle Dot (Bottom Right)
+                ctx.beginPath();
+                ctx.arc(35, 35, 10, 0, Math.PI*2);
+                ctx.fillStyle = "#00f";
+                ctx.fill();
+            }
+            
+            ctx.restore();
+        });
+    }
+
+    // --- 4. INTERACTION ---
+    function addSticker(emoji) {
+        state.objects.push({
+            content: emoji,
+            x: CONFIG.w/2, y: CONFIG.h/2,
+            scale: 1.0, rot: 0
+        });
+        state.activeObj = state.objects[state.objects.length-1];
+        render();
+    }
+
+    let isDrag = false, isTransform = false;
+    let startX, startY, startAngle, startDist;
+
+    // Helper to get canvas coords
+    function getPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+            x: (clientX - rect.left) * (CONFIG.w / rect.width),
+            y: (clientY - rect.top) * (CONFIG.h / rect.height)
+        };
+    }
+
+    canvas.addEventListener('pointerdown', e => {
+        const pos = getPos(e);
+        
+        // 1. Check Handle Hit (Transform)
+        if(state.activeObj) {
+            const o = state.activeObj;
+            // Map handle pos to world
+            const cos = Math.cos(o.rot), sin = Math.sin(o.rot);
+            // Handle is at local (35, 35) scaled
+            const lx = 35 * o.scale;
+            const ly = 35 * o.scale;
+            const hx = o.x + (lx * cos - ly * sin);
+            const hy = o.y + (lx * sin + ly * cos);
+            
+            if(Math.hypot(pos.x - hx, pos.y - hy) < 40) {
+                isTransform = true;
+                startAngle = Math.atan2(pos.y - o.y, pos.x - o.x) - o.rot;
+                startDist = Math.hypot(pos.x - o.x, pos.y - o.y) / o.scale;
+                return;
+            }
+        }
+
+        // 2. Check Object Hit (Move)
+        let hit = null;
+        for(let i=state.objects.length-1; i>=0; i--) {
+            const o = state.objects[i];
+            if(Math.hypot(pos.x - o.x, pos.y - o.y) < 40 * o.scale) {
+                hit = o; break;
+            }
+        }
+        
+        state.activeObj = hit;
+        if(hit) {
+            isDrag = true;
+            startX = pos.x; startY = pos.y;
+        }
+        render();
+    });
+
+    canvas.addEventListener('pointermove', e => {
+        if(!state.activeObj) return;
+        const pos = getPos(e);
+        
+        if(isTransform) {
+            const dx = pos.x - state.activeObj.x;
+            const dy = pos.y - state.activeObj.y;
+            state.activeObj.rot = Math.atan2(dy, dx) - startAngle;
+            state.activeObj.scale = Math.hypot(dx, dy) / startDist;
+            render();
+        } else if (isDrag) {
+            state.activeObj.x += pos.x - startX;
+            state.activeObj.y += pos.y - startY;
+            startX = pos.x; startY = pos.y;
+            render();
+        }
+    });
+
+    canvas.addEventListener('pointerup', () => { isDrag=false; isTransform=false; });
+
+    function savePhoto() {
+        state.activeObj = null; 
+        render();
+        const a = document.createElement('a');
+        a.download = 'Purikura.png';
+        a.href = canvas.toDataURL();
+        a.click();
+    }
+
+</script>
+</body>
+</html>

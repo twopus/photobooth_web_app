@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cloud Studio Pro</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&family=Pacifico&family=Bangers&display=swap');
+
+        :root {
+            --bg-room: #1a1a1a;
+            --machine: #f4f4f4;
+            --accent: #ff9e99;
+            --light: #ffffff;
+        }
+
+        * { box-sizing: border-box; touch-action: manipulation; user-select: none; -webkit-user-select: none; outline: none; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            margin: 0; height: 100vh; background: var(--bg-room);
+            font-family: 'Quicksand', sans-serif;
+            display: flex; justify-content: center; align-items: center;
+            overflow: hidden;
+        }
+
+        /* SVG Icon styling */
+        .icon { width: 24px; height: 24px; fill: currentColor; }
+        .icon-lg { width: 32px; height: 32px; fill: currentColor; }
+
+        /* --- BOOTH LAYOUT --- */
+        .booth-frame {
+            width: 100%; max-width: 480px; height: 100%; max-height: 900px;
+            display: flex; flex-direction: column; align-items: center;
+            position: relative;
+        }
+
+        .top-light {
+            width: 90%; height: 60px; background: var(--light);
+            border-radius: 30px; margin-bottom: 8px; z-index: 2;
+            box-shadow: 0 0 calc(20px * var(--int, 1)) var(--light);
+            border: 4px solid #fff; opacity: calc(0.7 + (0.3 * var(--int, 1)));
+            transition: 0.3s;
+        }
+
+        .machine-body {
+            flex: 1; width: 100%; background: var(--machine);
+            border-radius: 35px; padding: 15px; display: flex; flex-direction: column;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5); overflow: hidden; position: relative;
+        }
+
+        .lens {
+            width: 14px; height: 14px; background: #222; border-radius: 50%;
+            border: 2px solid #aaa; margin: 0 auto 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .stage { flex: 1; display: flex; gap: 10px; overflow: hidden; position: relative; }
+
+        .strip-light {
+            width: 16px; background: var(--light); border-radius: 20px;
+            box-shadow: 0 0 calc(15px * var(--int, 1)) var(--light);
+            opacity: calc(0.5 + (0.5 * var(--int, 1))); transition: 0.3s;
+        }
+
+        .screen {
+            flex: 1; background: #fff; border-radius: 20px; border: 4px solid #333;
+            overflow: hidden; display: flex; flex-direction: column; position: relative;
+        }
+
+        /* --- VIEWS --- */
+        .view { display: none; flex: 1; flex-direction: column; width: 100%; height: 100%; background: #fff; }
+        .view.active { display: flex; }
+
+        .start-view { justify-content: center; align-items: center; background: radial-gradient(circle, #fff, #f0f0f5); }
+        .cloud-anim { width:80px; height:80px; animation: float 3s ease-in-out infinite; margin-bottom: 20px; fill: var(--accent); }
+        @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+
+        .btn-main {
+            padding: 15px 40px; background: var(--accent); color: white;
+            border: none; border-radius: 50px; font-size: 1.2rem; font-weight: 700;
+            box-shadow: 0 5px 15px rgba(255,158,153,0.4); cursor: pointer;
+        }
+
+        /* Camera */
+        .cam-feed { flex: 1; background: #000; position: relative; overflow: hidden; border-radius: 15px 15px 0 0; }
+        video { width: 100%; height: 100%; object-fit: cover; }
+        .flip { transform: scaleX(-1); }
+        
+        .cam-controls { 
+            padding: 15px; background: #fff; border-top: 1px solid #eee;
+            display: flex; flex-direction: column; gap: 15px; align-items: center; 
+        }
+
+        .light-slider {
+            display: flex; align-items: center; gap: 15px; width: 100%; color: #888;
+        }
+        input[type=range] { flex: 1; height: 6px; accent-color: var(--accent); border-radius: 3px; }
+
+        .action-row { display: flex; align-items: center; justify-content: center; gap: 25px; width: 100%; }
+        
+        .shutter {
+            width: 70px; height: 70px; border: 5px solid var(--accent); border-radius: 50%;
+            padding: 4px; cursor: pointer; display: flex; justify-content: center; align-items: center;
+        }
+        .shutter-btn { width: 100%; height: 100%; background: var(--accent); border-radius: 50%; }
+
+        .color-dot {
+            width: 40px; height: 40px; border-radius: 50%; border: 3px solid #eee;
+            background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red);
+            position: relative; overflow: hidden;
+        }
+        input[type=color] { position: absolute; top:-50%; left:-50%; width:200%; height:200%; opacity:0; }
+
+        /* Selection */
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 10px; overflow-y: auto; flex: 1; align-content: start; }
+        .thumb { aspect-ratio: 1; background: #ddd; border-radius: 8px; overflow: hidden; border: 3px solid transparent; opacity: 0.6; }
+        .thumb.sel { border-color: var(--accent); opacity: 1; }
+        .thumb img { width: 100%; height: 100%; object-fit: cover; }
+        
+        .layout-bar { padding: 10px; display: flex; gap: 10px; overflow-x: auto; justify-content: center; }
+        .pill-btn { padding: 8px 16px; background: #fff; border: 1px solid #ddd; border-radius: 20px; font-weight: 700; color: #666; white-space: nowrap; }
+        .pill-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+        /* Editor */
+        .editor { background: #e0e0e0; flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .canvas-wrap { flex: 1; overflow: auto; display: flex; justify-content: center; align-items: center; padding: 20px; position: relative; }
+        canvas { background: white; box-shadow: 0 5px 20px rgba(0,0,0,0.1); max-width: none; } /* Canvas scales via JS */
+
+        .toolbar {
+            background: #fff; border-top: 1px solid #ddd; z-index: 10;
+            display: flex; flex-direction: column;
+        }
+
+        .tool-scroll {
+            display: flex; gap: 10px; padding: 10px; overflow-x: auto; 
+            -webkit-overflow-scrolling: touch; scrollbar-width: none;
+        }
+        .tool-scroll::-webkit-scrollbar { display: none; }
+
+        .tool {
+            flex: 0 0 60px; height: 60px; border: 1px solid #eee; border-radius: 12px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: #555; font-size: 0.7rem; font-weight: 700; background: #fff;
+        }
+        .tool.active { background: #ffebeb; border-color: var(--accent); color: var(--accent); }
+        .tool span { margin-top: 3px; }
+
+        .submenu {
+            background: #f8f8f8; padding: 10px; display: none; gap: 10px; align-items: center;
+            overflow-x: auto; border-bottom: 1px solid #eee;
+        }
+        .submenu.active { display: flex; }
+
+        /* Floating Actions (Undo/Redo) */
+        .float-act {
+            position: absolute; top: 10px; right: 10px; display: flex; gap: 8px; z-index: 20;
+        }
+        .mini-btn {
+            width: 36px; height: 36px; background: #fff; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); border: 1px solid #ddd;
+        }
+
+        .brush-preview {
+            width: 30px; height: 30px; border: 1px solid #ddd; background: #fff;
+            display: flex; align-items: center; justify-content: center;
+            margin-left: auto; border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="booth-frame">
+    <div class="top-light"></div>
+    <div class="machine-body">
+        <div class="lens"></div>
+        <div class="stage">
+            <div class="strip-light"></div>
+            <div class="screen">
+                
+                <div id="view-start" class="view active start-view">
+                    <svg class="cloud-anim" viewBox="0 0 24 24">
+                        <path d="M17.5,19c-3.03,0-5.5-2.47-5.5-5.5c0-0.44,0.05-0.86,0.15-1.27C11.69,12.08,11.16,12,10.6,12c-2.54,0-4.6,2.06-4.6,4.6 s2.06,4.6,4.6,4.6H17.5z M19,17.5c1.93,0,3.5-1.57,3.5-3.5s-1.57-3.5-3.5-3.5c-0.29,0-0.56,0.04-0.82,0.1 c-0.54-1.92-2.29-3.35-4.38-3.35c-2.51,0-4.55,2.04-4.55,4.55c0,0.22,0.02,0.44,0.05,0.65c-0.34-0.1-0.7-0.15-1.07-0.15 C5.47,12.25,3,14.72,3,17.75S5.47,23.25,8.5,23.25h10.5c2.48,0,4.5-2.02,4.5-4.5S21.48,14.25,19,14.25V17.5z"/>
+                    </svg>
+                    <h1 style="margin:0 0 20px; color:#555;">Cloud Studio</h1>
+                    <button class="btn-main" onclick="initCam()">Start</button>
+                </div>
+
+                <div id="view-cam" class="view">
+                    <div class="cam-feed">
+                        <video id="vid" autoplay playsinline class="flip"></video>
+                        <div id="countdown" style="position:absolute; inset:0; display:none; place-items:center; font-size:6rem; color:#fff; font-weight:bold; text-shadow:0 2px 10px rgba(0,0,0,0.5);">3</div>
+                        <div id="flash" style="position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none; transition:0.2s;"></div>
+                    </div>
+                    <div class="cam-controls">
+                        <div class="light-slider">
+                            <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2m-2.05-4.95l-1.41 1.41M7.46 17.54l-1.41 1.41M4.95 4.95l1.41 1.41m11.18 11.18l1.41 1.41" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                            <input type="range" min="0" max="1" step="0.1" value="1" oninput="setLight(this.value)">
+                            <svg class="icon-lg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6"/><path d="M12 1v3m0 16v3M1 12h3m16 0h3m-2.8-7.8l-2.1 2.1M8.9 17.3l-2.1 2.1M3.2 3.2l2.1 2.1m13.4 13.4l2.1 2.1" stroke="currentColor" stroke-width="3" fill="none"/></svg>
+                        </div>
+                        <div class="action-row">
+                            <div class="color-dot"><input type="color" oninput="setColor(this.value)" value="#ffffff"></div>
+                            <div class="shutter" onclick="snap()"><div class="shutter-btn"></div></div>
+                            <button class="pill-btn" onclick="flipCam()">Flip</button>
+                        </div>
+                        <button id="btn-done" class="pill-btn" style="width:100%; display:none; background:#444; color:#fff;" onclick="toSelect()">Finish (<span id="count">0</span>/8)</button>
+                    </div>
+                </div>
+
+                <div id="view-sel" class="view">
+                    <div class="layout-bar" id="lay-opts"></div>
+                    <div class="layout-bar" id="sub-opts"></div>
+                    <div class="grid" id="grid"></div>
+                    <div style="padding:10px;">
+                        <button id="btn-edit" class="btn-main" style="width:100%; opacity:0.5;" disabled onclick="toEditor()">Edit Frame</button>
+                    </div>
+                </div>
+
+                <div id="view-edit" class="view editor">
+                    <div class="canvas-wrap">
+                        <canvas id="cvs"></canvas>
+                        
+                        <div class="float-act">
+                            <div class="mini-btn" onclick="undo()">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>
+                            </div>
+                            <div class="mini-btn" onclick="redo()">
+                                <svg class="icon" viewBox="0 0 24 24" style="transform:scaleX(-1);"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="toolbar">
+                        <div id="m-draw" class="submenu">
+                            <button class="pill-btn" onclick="setTool('marker')">Mark</button>
+                            <button class="pill-btn" onclick="setTool('pencil')">Pencil</button>
+                            <button class="pill-btn" onclick="setTool('dash')">Dash</button>
+                            <button class="pill-btn" onclick="setTool('dot')">Dot</button>
+                            <button class="pill-btn" onclick="setTool('eraser')">Erase</button>
+                            <div style="flex:1"></div>
+                            <div class="brush-preview" id="brush-prev"></div>
+                            <input type="range" min="2" max="30" value="5" style="width:80px" oninput="setSize(this.value)">
+                            <div class="color-dot" style="width:30px; height:30px;"><input type="color" oninput="setDrawColor(this.value)" value="#000000"></div>
+                            <button class="pill-btn active" onclick="closeMenus()">OK</button>
+                        </div>
+
+                        <div id="m-text" class="submenu">
+                            <button class="pill-btn" onclick="setFont('Quicksand')">Std</button>
+                            <button class="pill-btn" onclick="setFont('Pacifico')">Cute</button>
+                            <button class="pill-btn" onclick="setFont('Bangers')">Bold</button>
+                             <div class="color-dot" style="width:30px; height:30px;"><input type="color" oninput="setTextColor(this.value)" value="#000000"></div>
+                            <button class="pill-btn" style="background:var(--delete-red); color:#fff" onclick="delObj()">Del</button>
+                            <button class="pill-btn active" onclick="closeMenus()">OK</button>
+                        </div>
+
+                        <div id="m-bg" class="submenu">
+                             <div class="color-dot" style="width:30px; height:30px;"><input type="color" oninput="setBgColor(this.value)" value="#ffffff"></div>
+                             <label class="pill-btn">
+                                 Img <input type="file" hidden accept="image/*" onchange="setBgImg(event)">
+                             </label>
+                             <button class="pill-btn active" onclick="closeMenus()">OK</button>
+                        </div>
+
+                        <div class="tool-scroll">
+                            <div class="tool" onclick="menu('m-bg')">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-5.04-6.71l-2.75 3.54-1.96-2.36L6.5 17h11l-3.54-4.71z"/></svg>
+                                <span>BG</span>
+                            </div>
+                            <div class="tool" onclick="menu('m-draw'); setTool(state.brush||'marker')">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                                <span>Draw</span>
+                            </div>
+                            <div class="tool" onclick="addTxt()">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M5 4v3h5v12h3V7h5V4H5zm12 5h-2v12h2V9z"/></svg>
+                                <span>Text</span>
+                            </div>
+                            <div class="tool" onclick="menu('m-filters')">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M19.36 2.72l-1.41 1.41c-.45.45-.63 1.1-.55 1.73l-.84.84c-1.29-1.08-3.13-1.32-4.66.21l-3.5 3.5c-1.95 1.95-1.95 5.11 0 7.07l2.12 2.12c1.95 1.95 5.12 1.95 7.07 0l3.5-3.5c1.53-1.53 1.29-3.37.21-4.66l.84-.84c.63.08 1.28-.1 1.73-.55l1.41-1.41c.39-.39.39-1.02 0-1.41l-4.52-4.52c-.39-.4-.95-.4-1.4-.01z"/></svg>
+                                <span>Filter</span> </div>
+                            <div class="tool" onclick="save()">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                                <span>Save</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="strip-light"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const CONFIG = { w:800, h:1200 };
+    let state = {
+        photos: [], sel: [], layout: 4, mode: 'grid',
+        bg: '#fff', bgImg: null,
+        objs: [], active: null,
+        draw: false, brush: 'marker', color: '#000', size: 5, paths: [],
+        hist: [], histP: -1
+    };
+
+    const vid = document.getElementById('vid');
+    const cvs = document.getElementById('cvs');
+    const ctx = cvs.getContext('2d');
+    
+    // --- UTILS ---
+    const setVar = (k,v) => document.documentElement.style.setProperty(k,v);
+    const view = id => { document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); document.getElementById(id).classList.add('active'); };
+
+    // --- CAMERA ---
+    async function initCam() {
+        try {
+            const s = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}});
+            vid.srcObject = s;
+            view('view-cam');
+        } catch(e) { alert('Camera access denied'); }
+    }
+    const flipCam = () => vid.classList.toggle('flip');
+    const setLight = v => { setVar('--int', v); };
+    const setColor = v => { setVar('--light', v); setVar('--int', 1); };
+
+    let busy = false;
+    function snap() {
+        if(busy || state.photos.length>=8) return;
+        busy = true;
+        const cd = document.getElementById('countdown');
+        cd.style.display='grid'; let n=3; cd.innerText=n;
+        let t = setInterval(()=>{
+            n--; if(n>0) cd.innerText=n;
+            else { clearInterval(t); cd.style.display='none'; take(); }
+        },1000);
+    }
+    function take() {
+        const fl = document.getElementById('flash'); fl.style.opacity=1; setTimeout(()=>fl.style.opacity=0,150);
+        const c = document.createElement('canvas'); c.width=640; c.height=480;
+        const x = c.getContext('2d');
+        if(vid.classList.contains('flip')){ x.translate(640,0); x.scale(-1,1); }
+        x.drawImage(vid,0,0);
+        state.photos.push(c);
+        document.getElementById('count').innerText=state.photos.length;
+        document.getElementById('btn-done').style.display='block';
+        busy = false;
+        if(state.photos.length>=8) toSelect();
+    }
+
+    // --- SELECT ---
+    function toSelect() {
+        if(vid.srcObject) vid.srcObject.getTracks().forEach(t=>t.stop());
+        view('view-sel');
+        prepLayouts();
+        renderThumb();
+    }
+    function prepLayouts() {
+        const d = document.getElementById('lay-opts'); d.innerHTML='';
+        [1,2,4,6,8].filter(n=>n<=state.photos.length).forEach(n=>{
+            const b = document.createElement('button'); b.className='pill-btn'; b.innerText=n;
+            b.onclick=()=>{state.layout=n; state.sel=[]; prepSub(); renderThumb();};
+            if(n===state.layout) b.classList.add('active');
+            d.appendChild(b);
+        });
+        if(state.photos.length<state.layout) state.layout=state.photos.length; // fallback
+        prepSub();
+    }
+    function prepSub() {
+        const d = document.getElementById('sub-opts'); d.innerHTML='';
+        let opts = [];
+        if(state.layout===4) opts=[{l:'Grid',v:'grid'},{l:'Strip',v:'strip'}];
+        else if(state.layout===2) opts=[{l:'Horiz',v:'horiz'},{l:'Vert',v:'vert'}];
+        
+        if(opts.length===0) state.mode='grid';
+        
+        opts.forEach(o=>{
+            const b = document.createElement('button'); b.className='pill-btn'; b.innerText=o.l;
+            if(state.mode===o.v) b.classList.add('active');
+            b.onclick=()=>{state.mode=o.v; prepSub();};
+            d.appendChild(b);
+        });
+    }
+    function renderThumb() {
+        const g = document.getElementById('grid'); g.innerHTML='';
+        state.photos.forEach((p,i)=>{
+            const d = document.createElement('div'); d.className=`thumb ${state.sel.includes(i)?'sel':''}`;
+            d.onclick=()=>{
+                const idx = state.sel.indexOf(i);
+                if(idx>-1) state.sel.splice(idx,1);
+                else if(state.sel.length<state.layout) state.sel.push(i);
+                renderThumb();
+                const ready = state.sel.length===state.layout;
+                const b = document.getElementById('btn-edit');
+                b.disabled = !ready; b.style.opacity = ready?1:0.5;
+            };
+            const im = new Image(); im.src = p.toDataURL();
+            d.appendChild(im);
+            g.appendChild(d);
+        });
+    }
+
+    // --- EDITOR ---
+    function toEditor() {
+        view('view-edit');
+        // Size logic
+        if(state.layout===4 && state.mode==='strip') { cvs.width=400; cvs.height=1200; }
+        else if(state.layout===2 && state.mode==='vert') { cvs.width=600; cvs.height=900; }
+        else { cvs.width=800; cvs.height=1200; }
+        
+        // Auto scale canvas to fit screen
+        const con = document.querySelector('.canvas-wrap');
+        const sc = Math.min((con.clientWidth-40)/cvs.width, (con.clientHeight-40)/cvs.height);
+        cvs.style.width = (cvs.width*sc)+'px';
+        cvs.style.height = (cvs.height*sc)+'px';
+        
+        recState(); render();
+    }
+
+    // --- RENDER PIPELINE ---
+    function render() {
+        const W = cvs.width, H = cvs.height;
+        
+        // 1. Background
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = state.bg; ctx.fillRect(0,0,W,H);
+        if(state.bgImg) {
+            const i=state.bgImg; const r=Math.max(W/i.width, H/i.height);
+            ctx.drawImage(i, (W-i.width*r)/2, (H-i.height*r)/2, i.width*r, i.height*r);
+        }
+
+        // 2. Photos (Cover Fit)
+        const gap = 20; 
+        const imgs = state.sel.map(i=>state.photos[i]);
+        
+        // Layout Math
+        let cells = [];
+        if(state.layout===4 && state.mode==='strip') {
+             const h = (H-H*0.15-4*gap)/4; const w = W-2*gap; // Bottom space
+             imgs.forEach((_,i)=> cells.push({x:gap, y:gap+i*(h+gap), w, h}));
+        } else {
+             // Grid
+             let cols=2, rows=Math.ceil(state.layout/2);
+             if(state.layout===1){cols=1; rows=1;}
+             if(state.layout===2 && state.mode==='vert'){cols=1; rows=2;}
+             const w = (W-(cols+1)*gap)/cols; const h = w*0.75;
+             const startY = (H-(rows*h+(rows-1)*gap))/2;
+             imgs.forEach((_,i)=>{
+                 cells.push({x:gap+(i%cols)*(w+gap), y:startY+Math.floor(i/cols)*(h+gap), w, h});
+             });
+        }
+        
+        cells.forEach((c,i)=>{
+            const img = imgs[i];
+            const r = Math.max(c.w/img.width, c.h/img.height);
+            const nw=img.width*r, nh=img.height*r;
+            ctx.save();
+            ctx.beginPath(); ctx.rect(c.x,c.y,c.w,c.h); ctx.clip();
+            ctx.drawImage(img, c.x+(c.w-nw)/2, c.y+(c.h-nh)/2, nw, nh);
+            ctx.restore();
+        });
+
+        // 3. Drawing (Separate pass to allow erasing ONLY strokes)
+        // Note: To erase strokes only without erasing bg/photos, strictly we need an offscreen canvas.
+        // For simplicity here: standard destination-out erases everything below. 
+        // TRICK: We will draw strokes. If eraser, we assume it erases everything (simple) OR 
+        // since user asked "erase pencil strokes only", we must use offscreen canvas.
+        
+        if(state.paths.length > 0) {
+            const tempCvs = document.createElement('canvas');
+            tempCvs.width = W; tempCvs.height = H;
+            const tCtx = tempCvs.getContext('2d');
+            
+            state.paths.forEach(p => {
+                tCtx.beginPath();
+                tCtx.lineCap = 'round'; tCtx.lineJoin = 'round';
+                tCtx.lineWidth = p.s;
+                
+                if(p.t === 'eraser') {
+                    tCtx.globalCompositeOperation = 'destination-out';
+                    tCtx.strokeStyle = '#000';
+                } else {
+                    tCtx.globalCompositeOperation = 'source-over';
+                    tCtx.strokeStyle = p.c;
+                    if(p.t === 'pencil') { tCtx.globalAlpha = 0.5; } 
+                    else { tCtx.globalAlpha = 1; }
+                    
+                    if(p.t === 'dash') tCtx.setLineDash([p.s*2, p.s*3]);
+                    else if (p.t === 'dot') tCtx.setLineDash([1, p.s*3]);
+                    else tCtx.setLineDash([]);
+                }
+                
+                if(p.pts.length) {
+                    tCtx.moveTo(p.pts[0].x, p.pts[0].y);
+                    p.pts.forEach(pt => tCtx.lineTo(pt.x, pt.y));
+                    tCtx.stroke();
+                }
+            });
+            // Draw drawings onto main
+            ctx.drawImage(tempCvs, 0, 0);
+        }
+
+        // 4. Objects (Text)
+        state.objs.forEach(o => {
+            ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(o.r); ctx.scale(o.s, o.s);
+            if(o.type === 'text') {
+                ctx.font = `bold 50px ${o.font}`; ctx.fillStyle = o.c;
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(o.txt, 0, 0);
+            }
+            if(state.active === o) {
+                // Selection Box with Handle
+                ctx.strokeStyle = '#ff9e99'; ctx.lineWidth=3;
+                ctx.strokeRect(-100,-40,200,80);
+                // Handle
+                ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(100,40,10,0,Math.PI*2); ctx.fill(); ctx.stroke();
+            }
+            ctx.restore();
+        });
+    }
+
+    // --- HISTORY ---
+    function recState() {
+        state.histP++;
+        state.hist = state.hist.slice(0, state.histP);
+        state.hist.push(JSON.stringify({
+            bg:state.bg, paths:state.paths, objs:state.objs
+        }));
+    }
+    function undo() { if(state.histP>0) { state.histP--; loadState(); } }
+    function redo() { if(state.histP<state.hist.length-1) { state.histP++; loadState(); } }
+    function loadState() {
+        const s = JSON.parse(state.hist[state.histP]);
+        state.bg=s.bg; state.paths=s.paths; state.objs=s.objs;
+        state.active=null;
+        render();
+    }
+
+    // --- ACTIONS ---
+    function menu(id) { 
+        document.querySelectorAll('.submenu').forEach(m=>m.classList.remove('active'));
+        if(id) document.getElementById(id).classList.add('active');
+        state.draw = (id === 'm-draw');
+        state.active = null; // deselect objects when changing tool
+        updateUI();
+    }
+    function closeMenus() { menu(null); }
+    
+    function setTool(t) { 
+        state.brush = t; 
+        updateBrushPreview();
+    }
+    function setSize(s) { 
+        state.size = parseInt(s); 
+        updateBrushPreview();
+    }
+    function setDrawColor(c) { state.color = c; updateBrushPreview(); }
+    
+    function updateBrushPreview() {
+        const p = document.getElementById('brush-prev');
+        p.innerHTML = '';
+        const d = document.createElement('div');
+        d.style.backgroundColor = state.brush==='eraser' ? '#ccc' : state.color;
+        d.style.width = state.size + 'px';
+        d.style.height = state.size + 'px';
+        d.style.borderRadius = state.brush==='marker'||state.brush==='dot' ? '50%' : '0';
+        p.appendChild(d);
+    }
+
+    function addTxt() {
+        closeMenus(); const t=prompt("Text:");
+        if(t) { state.objs.push({type:'text', txt:t, x:cvs.width/2, y:cvs.height/2, r:0, s:1, c:'#000', font:'Quicksand'}); recState(); render(); }
+    }
+    function setFont(f) { if(state.active && state.active.type==='text') { state.active.font=f; recState(); render(); } }
+    function setTextColor(c) { if(state.active && state.active.type==='text') { state.active.c=c; recState(); render(); } }
+    function setBgColor(c) { state.bg=c; state.bgImg=null; recState(); render(); }
+    function setBgImg(e) { 
+        const f=e.target.files[0]; 
+        if(f) { const i=new Image(); i.onload=()=>{state.bgImg=i; recState(); render();}; i.src=URL.createObjectURL(f); }
+    }
+    function delObj() { 
+        if(state.active) { state.objs=state.objs.filter(o=>o!==state.active); state.active=null; recState(); render(); }
+    }
+    function save() {
+        state.active=null; render();
+        const a=document.createElement('a'); a.download='cloud_studio.png'; a.href=cvs.toDataURL(); a.click();
+    }
+    
+    function updateUI() {
+        document.getElementById('m-text').classList.toggle('active', !!state.active && state.active.type==='text');
+    }
+
+    // --- INTERACTION ---
+    let isDrag=false, lastP=null, path=null;
+    // Rotation logic
+    let isRot=false, startAng=0, startDist=0;
+
+    const getXY = (e) => {
+        const r = cvs.getBoundingClientRect();
+        const x = e.touches?e.touches[0].clientX:e.clientX;
+        const y = e.touches?e.touches[0].clientY:e.clientY;
+        return { 
+            x: (x-r.left) * (cvs.width/r.width),
+            y: (y-r.top) * (cvs.height/r.height)
+        };
+    };
+
+    cvs.addEventListener('pointerdown', e=>{
+        const p = getXY(e);
+        
+        // 1. Check Handle Hit (Transform)
+        if(state.active) {
+            const o = state.active;
+            // Handle pos relative to center: (100, 40) rotated and scaled
+            const rad = o.r;
+            const hx = o.x + (100*o.s)*Math.cos(rad) - (40*o.s)*Math.sin(rad);
+            const hy = o.y + (100*o.s)*Math.sin(rad) + (40*o.s)*Math.cos(rad);
+            
+            if(Math.hypot(p.x-hx, p.y-hy) < 30) {
+                isRot = true;
+                startAng = Math.atan2(p.y-o.y, p.x-o.x) - o.r;
+                startDist = Math.hypot(p.x-o.x, p.y-o.y) / o.s;
+                e.preventDefault(); return;
+            }
+        }
+
+        // 2. Draw
+        if(state.draw) {
+            isDrag=true; 
+            path = {t:state.brush, c:state.color, s:state.size, pts:[p]};
+            state.paths.push(path);
+            render();
+            return;
+        }
+
+        // 3. Select Object
+        let hit = null;
+        for(let i=state.objs.length-1; i>=0; i--) {
+            const o = state.objs[i];
+            if(Math.hypot(p.x-o.x, p.y-o.y) < 80*o.s) { hit=o; break; }
+        }
+        state.active = hit;
+        updateUI();
+        if(hit) { isDrag=true; lastP=p; }
+        render();
+    });
+
+    cvs.addEventListener('pointermove', e=>{
+        const p = getXY(e);
+        if(isRot && state.active) {
+            const dx = p.x - state.active.x; const dy = p.y - state.active.y;
+            state.active.r = Math.atan2(dy, dx) - startAng;
+            state.active.s = Math.hypot(dx, dy) / startDist;
+            render();
+            return;
+        }
+        if(!isDrag) return;
+        
+        if(state.draw && path) {
+            path.pts.push(p); render();
+        } else if(state.active) {
+            state.active.x += p.x - lastP.x;
+            state.active.y += p.y - lastP.y;
+            lastP = p;
+            render();
+        }
+        e.preventDefault();
+    });
+
+    cvs.addEventListener('pointerup', ()=>{
+        if(isDrag || isRot) recState();
+        isDrag=false; isRot=false; path=null;
+    });
+
+</script>
+</body>
+</html>
