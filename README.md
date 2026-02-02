@@ -1,5 +1,7 @@
 # Korean life4cuts Photobooth Web App
 
+## <br> PLAY NOW >> https://twopus.github.io/photobooth_web_app/ <<
+
 ### 2/2/2026 - Day 1 Recap
 
 Was bored during lunch today so I decided to vibe code a photobooth website using Gemini. As you can tell, it is quite incomplete and has a LOT of bugs so expect this to take a few days (hopefully <1 week). I'm still new to vibe coding web apps so I hope to learn something from this. So far I've learnt that the context window of Gemini is very low and it keeps calling Nano Banana even tho I told it to code.
