@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cloud Studio Pro - Ultimate Mobile</title>
+    <style>
+        /* --- FONTS (From Ver 23/25) --- */
+        @import url('https://fonts.googleapis.com/css2?family=Bangers&family=Dancing+Script:wght@700&family=Pacifico&family=Permanent+Marker&family=Playfair+Display:wght@700&family=Quicksand:wght@500;700&display=swap');
+
+        :root {
+            /* Theme Colors from Ver 10/15 */
+            --bg-room: #121212;
+            --machine-shell: #f0f0f0;
+            --accent: #ffb7b2;
+            --accent-btn: #ff9e99;
+            --studio-light: #ffffff;
+            --delete-red: #ff6b6b;
+            --light-int: 1; /* Variable for brightness */
+        }
+
+        * { box-sizing: border-box; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            margin: 0;
+            /* CHANGED: Allow scrolling for small screens */
+            min-height: 100vh;
+            background-color: var(--bg-room);
+            font-family: 'Quicksand', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align top so we can scroll down */
+            padding: 20px 10px; /* Add breathing room */
+            
+            /* Dynamic background glow */
+            background-image: 
+                radial-gradient(circle at 50% 30%, var(--studio-light) 0%, transparent 60%),
+                radial-gradient(#222 15%, transparent 16%);
+            background-size: 100% 100%, 40px 40px;
+            background-blend-mode: soft-light, normal;
+            transition: background 0.5s ease;
+            overflow-y: auto; /* ENABLE SCROLLING */
+        }
+
+        /* --- ICONS --- */
+        .icon { width: 24px; height: 24px; fill: currentColor; pointer-events: none; }
+        .icon-lg { width: 32px; height: 32px; fill: currentColor; pointer-events: none; }
+
+        /* --- BOOTH STRUCTURE (Ver 10/15 Theme) --- */
+        .booth-structure {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 520px;
+            /* CHANGED: Auto height to fit content */
+            height: auto; 
+            position: relative;
+        }
+
+        /* Top Light - Keeping it distinct like Ver 10 */
+        .top-light-cap {
+            width: 100%;
+            height: 80px;
+            background: #fff;
+            border-radius: 40px 40px 10px 10px;
+            margin-bottom: 10px;
+            z-index: 2;
+            /* Brightness affects shadow spread */
+            box-shadow: 0 0 calc(30px * var(--light-int)) var(--studio-light), 0 0 10px #fff;
+            border: 4px solid #fff;
+            position: relative;
+            opacity: calc(0.8 + (0.2 * var(--light-int)));
+        }
+        .top-light-cap::after {
+            content: '';
+            position: absolute; top: 10%; left: 5%; width: 90%; height: 60%;
+            background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0));
+            border-radius: 40px; opacity: 0.8;
+        }
+
+        .booth-casing {
+            width: 100%;
+            background: var(--machine-shell);
+            border-radius: 30px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            position: relative;
+            /* Minimum height to ensure it feels substantial */
+            min-height: 80vh; 
+        }
+
+        /* Camera Lens Deco */
+        .camera-deco { width: 100%; display: flex; justify-content: center; margin-bottom: 10px; }
+        .lens-circle {
+            width: 40px; height: 40px; background: #333; border-radius: 50%;
+            border: 4px solid #ddd; position: relative;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .lens-circle::after {
+            content: ''; position: absolute; top: 25%; left: 25%; width: 50%; height: 50%;
+            background: #111; border-radius: 50%; border: 2px solid #555;
+        }
+
+        .main-stage {
+            flex: 1;
+            display: flex;
+            gap: 10px; /* Tighter gap for mobile */
+            position: relative;
+            min-height: 500px; /* Ensure stage has height */
+            margin-bottom: 10px;
+        }
+
+        /* --- LIGHT STRIPS (BIGGER & BRIGHTER) --- */
+        .side-light {
+            /* CHANGED: Wider for more reflection */
+            width: 60px; 
+            background: #fff;
+            border-radius: 30px;
+            /* CHANGED: Intense shadow for "reflect on face" effect */
+            box-shadow: 0 0 calc(50px * var(--light-int)) var(--studio-light), inset 0 0 20px rgba(255,255,255,1);
+            opacity: var(--light-int);
+            transition: box-shadow 0.3s, opacity 0.3s;
+        }
+
+        .screen-container {
+            flex: 1;
+            background: #fff;
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            border: 6px solid #333;
+        }
+
+        /* --- VIEWS --- */
+        .view {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            position: relative;
+            background: #fff;
+            width: 100%;
+            height: 100%;
+        }
+        .view.active { display: flex; }
+
+        /* Start View */
+        .start-view { justify-content: center; align-items: center; background: radial-gradient(circle at center, #fff 0%, #fff0f5 100%); }
+        .logo-cloud { font-size: 4rem; margin-bottom: 10px; animation: float 3s infinite ease-in-out; text-align: center; line-height: 1;}
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+        
+        .btn-main {
+            padding: 14px 40px;
+            background: var(--accent-btn); color: white; border: none; border-radius: 50px;
+            font-size: 1.1rem; font-weight: 700;
+            box-shadow: 0 8px 20px rgba(255, 183, 178, 0.5); cursor: pointer;
+        }
+
+        /* Camera View */
+        .camera-area { flex: 1; position: relative; background: #000; overflow: hidden; width: 100%; }
+        video { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
+        .mirrored { transform: scaleX(-1); }
+        .countdown {
+            position: absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+            font-size: 8rem; color: #fff; text-shadow: 0 5px 25px rgba(0,0,0,0.5);
+            font-weight: 700; display: none; z-index: 20;
+        }
+
+        /* --- COMPACT UI FOR MOBILE --- */
+        .cam-ui {
+            padding: 10px;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+            border-top: 2px solid #eee;
+        }
+        
+        /* Brightness Slider */
+        .brightness-control { width: 100%; display: flex; align-items: center; gap: 10px; color: #888; font-size: 0.9rem;}
+        input[type=range] { flex: 1; height: 6px; accent-color: var(--accent-btn); border-radius: 3px; cursor: pointer;}
+
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+            justify-content: space-between; /* Spread out */
+            position: relative;
+        }
+
+        .shutter-ring {
+            width: 60px; height: 60px; /* Slightly smaller */
+            border-radius: 50%; border: 4px solid var(--accent);
+            padding: 4px; cursor: pointer; transition: transform 0.1s;
+            flex-shrink: 0;
+        }
+        .shutter-btn {
+            width: 100%; height: 100%; background: var(--accent-btn);
+            border-radius: 50%; box-shadow: 0 4px 10px rgba(255, 158, 153, 0.4);
+        }
+        .shutter-ring:active { transform: scale(0.95); }
+
+        .btn-icon {
+            width: 40px; height: 40px;
+            background: #f5f5f5; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            color: #555; cursor: pointer; border: none;
+            transition: background 0.2s;
+        }
+        .btn-icon:hover { background: #eee; }
+        .btn-icon.active { background: var(--accent); color: white; }
+
+        /* Filter Scroll - Compact */
+        .filter-scroll {
+            display: flex; gap: 8px; overflow-x: auto; 
+            padding: 5px 0; width: 100%; max-width: 320px;
+            -ms-overflow-style: none; scrollbar-width: none;
+        }
+        .filter-scroll::-webkit-scrollbar { display: none; }
+        .filter-chip {
+            padding: 6px 12px; background: #eee; border-radius: 20px;
+            font-size: 0.8rem; font-weight: 700; color: #666; white-space: nowrap; cursor: pointer;
+        }
+        .filter-chip.active { background: #333; color: #fff; }
+
+        /* Edit View */
+        .canvas-container { 
+            position: relative; 
+            width: 100%; 
+            height: 100%; 
+            background: #fff; 
+            overflow: hidden; 
+            touch-action: none; 
+        }
+        canvas { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: contain; 
+            touch-action: none;
+        }
+
+        .edit-toolbar {
+            padding: 10px; background: #fff; border-top: 2px solid #eee;
+            display: flex; flex-direction: column; gap: 8px;
+        }
+        .tool-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        
+        /* Sticker palette */
+        .sticker-drawer {
+            display: none; padding: 10px; background: #fafafa; border-radius: 10px;
+            flex-wrap: wrap; gap: 10px; justify-content: center; max-height: 150px; overflow-y: auto;
+        }
+        .sticker-drawer.open { display: flex; }
+        .sticker-item { font-size: 2rem; cursor: pointer; transition: transform 0.2s; }
+        .sticker-item:hover { transform: scale(1.2); }
+
+        /* Color Palette */
+        .color-dot {
+            width: 24px; height: 24px; border-radius: 50%; border: 2px solid #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2); cursor: pointer;
+        }
+        .color-dot.active { transform: scale(1.2); border-color: #333; }
+
+    </style>
+</head>
+<body>
+
+<div class="booth-structure">
+    <div class="top-light-cap"></div>
+
+    <div class="booth-casing">
+        <div class="camera-deco">
+            <div class="lens-circle"></div>
+        </div>
+
+        <div class="main-stage">
+            <div class="side-light"></div>
+
+            <div class="screen-container">
+                
+                <div id="view-start" class="view active start-view">
+                    <div class="logo-cloud">☁️<br><span style="font-size: 2.5rem; font-family:'Bangers'; letter-spacing: 2px;">STUDIO</span></div>
+                    <button class="btn-main" onclick="startCamera()">TAP TO START</button>
+                </div>
+
+                <div id="view-camera" class="view">
+                    <div class="camera-area">
+                        <video id="cam-feed" autoplay playsinline class="mirrored"></video>
+                        <canvas id="photo-canvas" style="display:none;"></canvas>
+                        <div class="countdown" id="countdown">3</div>
+                    </div>
+                    
+                    <div class="cam-ui">
+                        <div class="brightness-control">
+                            <span style="font-size:1.2rem">💡</span>
+                            <input type="range" min="0" max="1" step="0.1" value="1" oninput="setBrightness(this.value)">
+                        </div>
+
+                        <div class="filter-scroll">
+                            <div class="filter-chip active" onclick="setFilter('normal', this)">Normal</div>
+                            <div class="filter-chip" onclick="setFilter('grayscale(100%)', this)">B&W</div>
+                            <div class="filter-chip" onclick="setFilter('sepia(60%)', this)">Vintage</div>
+                            <div class="filter-chip" onclick="setFilter('contrast(130%)', this)">Punchy</div>
+                            <div class="filter-chip" onclick="setFilter('hue-rotate(90deg)', this)">Alien</div>
+                            <div class="filter-chip" onclick="setFilter('saturate(200%)', this)">Vivid</div>
+                        </div>
+
+                        <div class="controls-row">
+                            <button class="btn-icon" onclick="toggleCam()" title="Switch Camera">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M7 7h10v2H7zm0 4h10v2H7z"/><path d="M20 4h-3.17L15 2H9L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-5 11.5V13H9v2.5L5.5 12 9 8.5V11h6V8.5l3.5 3.5-3.5 3.5z"/></svg>
+                            </button>
+
+                            <div class="shutter-ring" onclick="takePhoto()">
+                                <div class="shutter-btn"></div>
+                            </div>
+
+                            <button class="btn-icon" onclick="toggleFlash()" id="btn-flash" title="Flash">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-edit" class="view">
+                    <div class="canvas-container" id="canvas-container">
+                        </div>
+
+                    <div class="edit-toolbar">
+                        <div class="tool-row">
+                            <div class="color-dot active" style="background:#000" onclick="setColor('#000', this)"></div>
+                            <div class="color-dot" style="background:#ff6b6b" onclick="setColor('#ff6b6b', this)"></div>
+                            <div class="color-dot" style="background:#4ecdc4" onclick="setColor('#4ecdc4', this)"></div>
+                            <div class="color-dot" style="background:#ffe66d" onclick="setColor('#ffe66d', this)"></div>
+                            <div class="color-dot" style="background:#fff; border:1px solid #ccc" onclick="setColor('#fff', this)"></div>
+                        </div>
+
+                        <div class="tool-row">
+                            <button class="btn-icon active" id="btn-draw" onclick="setMode('draw')">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                            </button>
+                            <button class="btn-icon" id="btn-stickers" onclick="toggleStickers()">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg>
+                            </button>
+                            <button class="btn-icon" onclick="undoLast()">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>
+                            </button>
+                            <button class="btn-icon" style="color:var(--delete-red)" onclick="deleteActive()">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                            </button>
+                        </div>
+
+                        <div class="sticker-drawer" id="sticker-drawer">
+                            <div class="sticker-item" onclick="addSticker('❤️')">❤️</div>
+                            <div class="sticker-item" onclick="addSticker('✨')">✨</div>
+                            <div class="sticker-item" onclick="addSticker('🔥')">🔥</div>
+                            <div class="sticker-item" onclick="addSticker('👑')">👑</div>
+                            <div class="sticker-item" onclick="addSticker('😎')">😎</div>
+                            <div class="sticker-item" onclick="addSticker('🎀')">🎀</div>
+                            <div class="sticker-item" onclick="addSticker('🌈')">🌈</div>
+                            <div class="sticker-item" onclick="addSticker('☁️')">☁️</div>
+                        </div>
+
+                        <div class="controls-row">
+                            <button class="btn-main" style="padding:10px 20px; font-size:0.9rem; background:#888;" onclick="retake()">RETAKE</button>
+                            <button class="btn-main" style="padding:10px 20px; font-size:0.9rem;" onclick="downloadImage()">SAVE</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="side-light"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- APP STATE & VARIABLES ---
+    const state = {
+        stream: null,
+        facingMode: 'user',
+        filter: 'none',
+        brightness: 1,
+        flashOn: false,
+        
+        // Editor State
+        canvas: null,
+        ctx: null,
+        objects: [], // {type: 'path'|'text'|'sticker', ...}
+        activeObj: null,
+        isDrawing: false,
+        brushColor: '#000',
+        brushSize: 5,
+        mode: 'draw', // 'draw' or 'select'
+        
+        // Drawing path temp
+        currentPath: null
+    };
+
+    // --- DOM ELEMENTS ---
+    const els = {
+        video: document.getElementById('cam-feed'),
+        canvasOut: document.getElementById('photo-canvas'),
+        views: {
+            start: document.getElementById('view-start'),
+            camera: document.getElementById('view-camera'),
+            edit: document.getElementById('view-edit')
+        },
+        countdown: document.getElementById('countdown'),
+        editContainer: document.getElementById('canvas-container'),
+        stickerDrawer: document.getElementById('sticker-drawer')
+    };
+
+    // --- NAVIGATION ---
+    function showView(viewName) {
+        Object.values(els.views).forEach(el => el.classList.remove('active'));
+        els.views[viewName].classList.add('active');
+    }
+
+    // --- CAMERA FUNCTIONS ---
+    async function startCamera() {
+        try {
+            if (state.stream) state.stream.getTracks().forEach(t => t.stop());
+            
+            const constraints = {
+                video: { facingMode: state.facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+                audio: false
+            };
+            
+            state.stream = await navigator.mediaDevices.getUserMedia(constraints);
+            els.video.srcObject = state.stream;
+            showView('camera');
+        } catch (err) {
+            alert("Camera access denied or error: " + err.message);
+        }
+    }
+
+    function toggleCam() {
+        state.facingMode = state.facingMode === 'user' ? 'environment' : 'user';
+        els.video.classList.toggle('mirrored', state.facingMode === 'user');
+        startCamera();
+    }
+
+    function setBrightness(val) {
+        state.brightness = val;
+        document.documentElement.style.setProperty('--light-int', val);
+    }
+
+    function setFilter(filterVal, btn) {
+        state.filter = filterVal;
+        els.video.style.filter = filterVal;
+        
+        // Update UI
+        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+    }
+
+    function toggleFlash() {
+        state.flashOn = !state.flashOn;
+        document.getElementById('btn-flash').classList.toggle('active', state.flashOn);
+        if(state.flashOn) {
+            document.documentElement.style.setProperty('--studio-light', '#ffffff');
+            setBrightness(1);
+        }
+    }
+
+    function takePhoto() {
+        let count = 3;
+        els.countdown.style.display = 'block';
+        els.countdown.innerText = count;
+        
+        // Flash Effect Prep
+        if(state.flashOn) {
+            document.querySelector('.booth-structure').style.background = '#fff';
+            document.documentElement.style.setProperty('--light-int', 2); // Super bright
+        }
+
+        const timer = setInterval(() => {
+            count--;
+            if (count > 0) {
+                els.countdown.innerText = count;
+            } else {
+                clearInterval(timer);
+                els.countdown.style.display = 'none';
+                capture();
+            }
+        }, 1000);
+    }
+
+    function capture() {
+        // Flash Animation
+        const flashDiv = document.createElement('div');
+        flashDiv.style.position = 'fixed';
+        flashDiv.style.top=0; flashDiv.style.left=0; flashDiv.style.width='100%'; flashDiv.style.height='100%';
+        flashDiv.style.background = '#fff'; flashDiv.style.zIndex=100; flashDiv.style.transition = 'opacity 0.5s';
+        document.body.appendChild(flashDiv);
+        setTimeout(() => { flashDiv.style.opacity = 0; setTimeout(()=>flashDiv.remove(), 500); }, 50);
+
+        // Reset Light
+        if(state.flashOn) document.documentElement.style.setProperty('--light-int', state.brightness);
+
+        // Setup Canvas
+        const vW = els.video.videoWidth;
+        const vH = els.video.videoHeight;
+        const canvas = document.createElement('canvas');
+        canvas.width = vW;
+        canvas.height = vH;
+        const ctx = canvas.getContext('2d');
+
+        // Draw Video
+        ctx.filter = state.filter;
+        if(state.facingMode === 'user') {
+            ctx.translate(vW, 0);
+            ctx.scale(-1, 1);
+        }
+        ctx.drawImage(els.video, 0, 0, vW, vH);
+        
+        // Init Editor
+        initEditor(canvas);
+        showView('edit');
+    }
+
+    // --- EDITOR FUNCTIONS (VER 23/25 LOGIC) ---
+    function initEditor(sourceCanvas) {
+        // Clear previous
+        els.editContainer.innerHTML = '';
+        state.objects = [];
+        
+        // Create fabric-like canvas logic manually to ensure full control without libraries if preferred,
+        // or just use a simple layer system. Here we use a custom simple layer system.
+        
+        const wrapper = document.createElement('div');
+        wrapper.style.width = '100%';
+        wrapper.style.height = '100%';
+        wrapper.style.position = 'relative';
+        
+        // Background Image Layer
+        const bgImg = new Image();
+        bgImg.src = sourceCanvas.toDataURL();
+        bgImg.style.width = '100%';
+        bgImg.style.height = '100%';
+        bgImg.style.objectFit = 'contain';
+        bgImg.style.position = 'absolute';
+        bgImg.style.top = 0; bgImg.style.left = 0;
+        
+        // Drawing/Object Layer
+        const drawCanvas = document.createElement('canvas');
+        drawCanvas.style.position = 'absolute';
+        drawCanvas.style.top = 0; drawCanvas.style.left = 0;
+        drawCanvas.style.width = '100%'; drawCanvas.style.height = '100%';
+        drawCanvas.style.touchAction = 'none';
+        
+        wrapper.appendChild(bgImg);
+        wrapper.appendChild(drawCanvas);
+        els.editContainer.appendChild(wrapper);
+
+        state.canvas = drawCanvas;
+        state.ctx = drawCanvas.getContext('2d');
+        
+        // Size canvas to match display size for sharpness
+        const rect = els.editContainer.getBoundingClientRect();
+        drawCanvas.width = rect.width;
+        drawCanvas.height = rect.height;
+        
+        // Add Bg as first object (conceptually)
+        state.bgSrc = bgImg.src;
+
+        // Events
+        attachCanvasEvents(drawCanvas);
+        renderCanvas();
+    }
+
+    function attachCanvasEvents(cvs) {
+        let isDrag = false;
+        let lastP = {x:0, y:0};
+
+        const getPos = (e) => {
+            const r = cvs.getBoundingClientRect();
+            const cx = e.touches ? e.touches[0].clientX : e.clientX;
+            const cy = e.touches ? e.touches[0].clientY : e.clientY;
+            return { x: cx - r.left, y: cy - r.top };
+        };
+
+        const start = (e) => {
+            const p = getPos(e);
+            if(state.mode === 'draw') {
+                isDrag = true;
+                state.currentPath = { 
+                    type: 'path', 
+                    points: [p], 
+                    color: state.brushColor, 
+                    width: state.brushSize 
+                };
+                state.objects.push(state.currentPath);
+            } else {
+                // Select Object
+                // Simple hit detection for stickers (assume circle radius 30)
+                let hit = null;
+                for(let i=state.objects.length-1; i>=0; i--) {
+                    const o = state.objects[i];
+                    if(o.type === 'sticker') {
+                        const dist = Math.hypot(p.x - o.x, p.y - o.y);
+                        if(dist < 40) { hit = o; break; }
+                    }
+                }
+                state.activeObj = hit;
+                if(hit) { isDrag = true; lastP = p; }
+            }
+            renderCanvas();
+        };
+
+        const move = (e) => {
+            if(!isDrag) return;
+            const p = getPos(e);
+            e.preventDefault(); // Prevent scrolling while drawing
+
+            if(state.mode === 'draw' && state.currentPath) {
+                state.currentPath.points.push(p);
+                renderCanvas();
+            } else if(state.mode === 'select' && state.activeObj) {
+                state.activeObj.x += p.x - lastP.x;
+                state.activeObj.y += p.y - lastP.y;
+                lastP = p;
+                renderCanvas();
+            }
+        };
+
+        const end = () => {
+            isDrag = false;
+            state.currentPath = null;
+        };
+
+        cvs.addEventListener('mousedown', start);
+        cvs.addEventListener('mousemove', move);
+        cvs.addEventListener('mouseup', end);
+        cvs.addEventListener('touchstart', start, {passive: false});
+        cvs.addEventListener('touchmove', move, {passive: false});
+        cvs.addEventListener('touchend', end);
+    }
+
+    function renderCanvas() {
+        const ctx = state.ctx;
+        const cvs = state.canvas;
+        ctx.clearRect(0, 0, cvs.width, cvs.height);
+
+        // Render Objects
+        state.objects.forEach(o => {
+            if(o.type === 'path') {
+                ctx.beginPath();
+                ctx.strokeStyle = o.color;
+                ctx.lineWidth = o.width;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                if(o.points.length > 0) ctx.moveTo(o.points[0].x, o.points[0].y);
+                o.points.forEach(p => ctx.lineTo(p.x, p.y));
+                ctx.stroke();
+            } else if(o.type === 'sticker') {
+                ctx.font = '50px serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(o.text, o.x, o.y);
+                
+                // Selection ring
+                if(state.activeObj === o) {
+                    ctx.beginPath();
+                    ctx.strokeStyle = '#00f';
+                    ctx.lineWidth = 1;
+                    ctx.arc(o.x, o.y, 40, 0, Math.PI*2);
+                    ctx.stroke();
+                }
+            }
+        });
+    }
+
+    // --- TOOLBAR FUNCTIONS ---
+    function setMode(m) {
+        state.mode = m;
+        document.getElementById('btn-draw').classList.toggle('active', m === 'draw');
+        state.activeObj = null;
+        renderCanvas();
+    }
+
+    function setColor(c, el) {
+        state.brushColor = c;
+        document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+        el.classList.add('active');
+        setMode('draw');
+    }
+
+    function toggleStickers() {
+        els.stickerDrawer.classList.toggle('open');
+        document.getElementById('btn-stickers').classList.toggle('active');
+        if(els.stickerDrawer.classList.contains('open')) {
+            setMode('select');
+        }
+    }
+
+    function addSticker(emoji) {
+        const cvs = state.canvas;
+        state.objects.push({
+            type: 'sticker',
+            text: emoji,
+            x: cvs.width / 2,
+            y: cvs.height / 2
+        });
+        setMode('select');
+        renderCanvas();
+        els.stickerDrawer.classList.remove('open');
+    }
+
+    function undoLast() {
+        state.objects.pop();
+        renderCanvas();
+    }
+
+    function deleteActive() {
+        if(state.activeObj) {
+            state.objects = state.objects.filter(o => o !== state.activeObj);
+            state.activeObj = null;
+            renderCanvas();
+        }
+    }
+
+    function retake() {
+        if(confirm("Discard this photo?")) {
+            showView('camera');
+        }
+    }
+
+    function downloadImage() {
+        // Merge Background and Canvas
+        const finalCvs = document.createElement('canvas');
+        finalCvs.width = state.canvas.width;
+        finalCvs.height = state.canvas.height;
+        const ctx = finalCvs.getContext('2d');
+        
+        // Load BG
+        const img = new Image();
+        img.src = state.bgSrc;
+        img.onload = () => {
+            // Draw BG (scaled to cover)
+            // Note: In a real robust app we'd calculate aspect ratio carefully.
+            // Here we assume the canvas size matched the display exactly.
+            ctx.drawImage(img, 0, 0, finalCvs.width, finalCvs.height);
+            // Draw Objects
+            ctx.drawImage(state.canvas, 0, 0);
+            
+            const link = document.createElement('a');
+            link.download = 'cloud-studio-photo.png';
+            link.href = finalCvs.toDataURL('image/png');
+            link.click();
+        };
+    }
+
+</script>
+</body>
+</html>

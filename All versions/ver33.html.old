@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Life4Cut Studio Pro</title>
+    <style>
+        /* FONTS (From your previous versions) */
+        @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&family=Bangers&display=swap');
+
+        :root {
+            --bg-room: #1a1a1a;
+            --machine-bg: #f4f4f4;
+            --screen-bg: #fff;
+            --accent: #ff8fab; /* Korean Pink */
+            --strip-color: #ff8fab;
+            --border-rad: 25px;
+        }
+
+        * { box-sizing: border-box; touch-action: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            margin: 0;
+            height: 100dvh; /* Mobile viewport fix */
+            background-color: var(--bg-room);
+            font-family: 'Quicksand', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            /* Room Ambience */
+            background-image: radial-gradient(circle at 50% 10%, #333 0%, #111 70%);
+        }
+
+        /* --- 1. BOOTH STRUCTURE (Restoring Ver 10 Layout) --- */
+        .booth-structure {
+            width: 100%; max-width: 480px; height: 98%;
+            display: flex; flex-direction: column;
+            position: relative;
+        }
+
+        /* Top Cap */
+        .top-light-cap {
+            height: 40px; background: #fff;
+            border-radius: 20px 20px 5px 5px;
+            margin: 0 10px 5px 10px;
+            box-shadow: 0 0 15px rgba(255,255,255,0.5);
+            flex-shrink: 0;
+        }
+
+        /* Main Casing */
+        .booth-casing {
+            flex: 1;
+            background: var(--machine-bg);
+            border-radius: var(--border-rad);
+            padding: 15px;
+            display: flex; flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+
+        /* Lens Decoration */
+        .camera-deco {
+            display: flex; justify-content: center; margin-bottom: 10px; flex-shrink: 0;
+        }
+        .lens-circle {
+            width: 30px; height: 30px; background: #222; border-radius: 50%;
+            border: 3px solid #ccc; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        /* Stage (Screen + Light Strip) */
+        .main-stage {
+            flex: 1; display: flex; gap: 12px;
+            overflow: hidden; position: relative;
+        }
+
+        /* --- 2. LIGHT STRIP (Moved to Right & Brighter) --- */
+        .light-strip {
+            width: 25px;
+            background: var(--strip-color);
+            border-radius: 15px;
+            /* Intense Glow */
+            box-shadow: 0 0 25px var(--strip-color), inset 2px 0 5px rgba(255,255,255,0.7);
+            transition: 0.3s;
+            flex-shrink: 0;
+        }
+
+        /* --- 3. SCREEN CONTAINER --- */
+        .screen-container {
+            flex: 1;
+            background: var(--screen-bg);
+            border-radius: 15px;
+            border: 4px solid #333;
+            overflow: hidden;
+            position: relative;
+            display: flex; flex-direction: column;
+        }
+
+        /* --- VIEWS --- */
+        .view {
+            flex: 1; display: none; flex-direction: column; width: 100%; height: 100%;
+        }
+        .view.active { display: flex; }
+
+        /* Start View */
+        .view-start {
+            justify-content: center; align-items: center; text-align: center;
+            background: radial-gradient(circle, #fff 0%, #ffeef2 100%);
+        }
+        .view-start h1 {
+            font-size: 2.8rem; line-height: 1; color: var(--accent);
+            text-shadow: 2px 2px 0 #333; margin-bottom: 20px;
+        }
+        .btn-start {
+            padding: 15px 40px; background: var(--accent); color: white;
+            border: 3px solid #333; border-radius: 50px;
+            font-size: 1.2rem; font-weight: 700; cursor: pointer;
+            box-shadow: 4px 4px 0 #333;
+        }
+        .btn-start:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #333; }
+
+        /* Camera View */
+        .view-camera { background: #000; position: relative; }
+        .video-wrap {
+            flex: 1; position: relative; overflow: hidden; display: flex; align-items: center;
+        }
+        video {
+            width: 100%; height: 100%; object-fit: cover;
+            transform: scaleX(-1);
+        }
+        /* Face Reflection Overlay */
+        .face-glow {
+            position: absolute; inset: 0; pointer-events: none;
+            background: var(--strip-color);
+            mix-blend-mode: overlay; opacity: 0.25;
+            transition: 0.3s;
+        }
+        
+        .cam-controls {
+            height: 100px; background: #fff; border-top: 3px solid #333;
+            display: flex; align-items: center; justify-content: space-around;
+            padding: 0 10px; flex-shrink: 0;
+        }
+        
+        .btn-circle {
+            width: 45px; height: 45px; border-radius: 50%; border: 2px solid #333;
+            background: #eee; display: flex; justify-content: center; align-items: center;
+        }
+        .btn-shutter {
+            width: 70px; height: 70px; border-radius: 50%; background: var(--accent);
+            border: 4px solid #333; cursor: pointer;
+        }
+        .btn-shutter:active { transform: scale(0.95); }
+
+        /* Editor View */
+        .view-editor { background: #eee; }
+        .canvas-area {
+            flex: 1; overflow: hidden; display: flex; justify-content: center; align-items: center;
+            background-image: radial-gradient(#ccc 1px, transparent 1px); background-size: 20px 20px;
+            padding: 10px;
+        }
+        canvas { box-shadow: 0 5px 15px rgba(0,0,0,0.2); max-width: 100%; max-height: 100%; }
+
+        /* --- SCROLLABLE TOOLBAR (Fixed) --- */
+        .toolbar-container {
+            height: 100px; background: #fff; border-top: 3px solid #333;
+            display: flex; flex-direction: column;
+            padding-bottom: 5px; flex-shrink: 0;
+        }
+        
+        /* Sub-menus appear above the main bar */
+        .sub-bar {
+            height: 40px; background: #f9f9f9; border-bottom: 1px solid #ddd;
+            display: none; align-items: center; gap: 10px; padding: 0 15px;
+            overflow-x: auto; flex-shrink: 0;
+        }
+        .sub-bar.active { display: flex; }
+        
+        .pill {
+            padding: 5px 12px; background: #fff; border: 1px solid #333; border-radius: 15px;
+            font-size: 0.75rem; white-space: nowrap; flex-shrink: 0;
+        }
+        .pill.active { background: var(--accent); color: white; }
+
+        /* Main Scroll Row */
+        .main-tools {
+            flex: 1; display: flex; align-items: center;
+            overflow-x: auto; /* Horizontal Scroll */
+            gap: 15px; padding: 0 15px;
+            scrollbar-width: none;
+        }
+        .main-tools::-webkit-scrollbar { display: none; }
+
+        .tool-item {
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+            min-width: 55px; cursor: pointer; color: #444;
+            flex-shrink: 0; /* CRITICAL for mobile scroll */
+        }
+        .tool-item span { font-size: 0.65rem; font-weight: 700; }
+        
+        /* Icons */
+        .icon { width: 24px; height: 24px; fill: currentColor; }
+
+        /* Hidden Input */
+        #img-input { display: none; }
+
+    </style>
+</head>
+<body>
+
+<div class="booth-structure">
+    <div class="top-light-cap"></div>
+
+    <div class="booth-casing">
+        <div class="camera-deco"><div class="lens-circle"></div></div>
+        
+        <div class="main-stage">
+            
+            <div class="screen-container">
+                
+                <div id="view-start" class="view view-start active">
+                    <h1>LIFE<br>4 CUT</h1>
+                    <button class="btn-start" onclick="startApp()">Start</button>
+                </div>
+
+                <div id="view-camera" class="view view-camera">
+                    <div style="position:absolute; top:10px; left:0; width:100%; text-align:center; z-index:10; color:white; font-weight:bold; text-shadow:0 1px 2px black;" id="shot-status">0 / 4</div>
+                    
+                    <div class="video-wrap">
+                        <video id="video" autoplay playsinline></video>
+                        <div class="face-glow"></div> <div id="countdown" style="position:absolute; font-size:6rem; color:white; font-weight:bold; display:none; text-shadow:0 0 10px rgba(0,0,0,0.8);">3</div>
+                    </div>
+
+                    <div class="cam-controls">
+                        <div class="btn-circle" onclick="changeLight()">
+                            <svg class="icon" viewBox="0 0 24 24"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/></svg>
+                        </div>
+                        <div class="btn-shutter" onclick="takeShots()"></div>
+                        <div class="btn-circle" onclick="toggleFlip()">
+                            <svg class="icon" viewBox="0 0 24 24"><path d="M15 21h-2v-2h2v2zm4-12h2V7h-2v2zM3 5v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2zm2 0h14v14H5V5zm7 5h2v5h-2z"/></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-editor" class="view view-editor">
+                    <div class="canvas-area">
+                        <canvas id="canvas"></canvas>
+                    </div>
+
+                    <div class="toolbar-container">
+                        <div id="sub-layout" class="sub-bar">
+                            <div class="pill" onclick="setLayout('strip')">Strip</div>
+                            <div class="pill" onclick="setLayout('grid')">Grid</div>
+                            <div class="pill" onclick="setLayout('single')">Big</div>
+                        </div>
+                        <div id="sub-filter" class="sub-bar">
+                            <div class="pill" onclick="setFilter('none')">Norm</div>
+                            <div class="pill" onclick="setFilter('peach')">Peach</div>
+                            <div class="pill" onclick="setFilter('pure')">Pure</div>
+                            <div class="pill" onclick="setFilter('mono')">Mono</div>
+                            <div class="pill" onclick="setFilter('fade')">Fade</div>
+                        </div>
+                        <div id="sub-bg" class="sub-bar">
+                            <div class="pill" onclick="setBg('#fff')">White</div>
+                            <div class="pill" onclick="setBg('#000')">Black</div>
+                            <div class="pill" onclick="setBg('#ff8fab')">Pink</div>
+                            <div class="pill" onclick="document.getElementById('img-input').click()">+ Img</div>
+                        </div>
+
+                        <div class="main-tools">
+                            <div class="tool-item" onclick="toggleSub('layout')">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+                                <span>Layout</span>
+                            </div>
+                            <div class="tool-item" onclick="toggleSub('filter')">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM8 17h3v-3H8v3zm5-5h3V9h-3v3zm-5 0h3V9H8v3zm5 5h3v-3h-3v3z"/></svg>
+                                <span>Filter</span>
+                            </div>
+                            <div class="tool-item" onclick="toggleSub('bg')">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+                                <span>Bg</span>
+                            </div>
+                            <div class="tool-item" onclick="toggleDraw()">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                                <span>Draw</span>
+                            </div>
+                            <div class="tool-item" onclick="document.getElementById('img-input').click()">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                                <span>Sticker</span>
+                            </div>
+                            <div class="tool-item" onclick="save()">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M17 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+                                <span>Save</span>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="file" id="img-input" accept="image/*" onchange="handleFile(event)">
+                </div>
+
+            </div>
+            
+            <div class="light-strip"></div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- APP STATE ---
+    const state = {
+        photos: [],
+        layout: 'strip',
+        filter: 'none',
+        bgColor: '#fff',
+        bgImg: null,
+        objects: [],
+        drawings: [],
+        isDrawing: false,
+        activeObj: null
+    };
+
+    const colors = ['#ff8fab', '#a0c4ff', '#bdb2ff', '#fdffb6', '#ffffff'];
+    let cIdx = 0;
+
+    // --- SETUP ---
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    function switchView(id) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    async function startApp() {
+        try {
+            const s = await navigator.mediaDevices.getUserMedia({ 
+                video: { width: {ideal:1280}, height: {ideal:960}, facingMode: "user" } 
+            });
+            video.srcObject = s;
+            switchView('view-camera');
+        } catch(e) { alert("Error: " + e.message); }
+    }
+
+    // --- CAMERA ---
+    function changeLight() {
+        cIdx = (cIdx+1)%colors.length;
+        document.documentElement.style.setProperty('--strip-color', colors[cIdx]);
+    }
+    
+    let mirrored = true;
+    function toggleFlip() {
+        mirrored = !mirrored;
+        video.style.transform = mirrored ? "scaleX(-1)" : "none";
+    }
+
+    function takeShots() {
+        state.photos = [];
+        let count = 0;
+        
+        const shotLoop = () => {
+            const cd = document.getElementById('countdown');
+            cd.style.display = 'block';
+            let t = 3;
+            cd.innerText = t;
+            
+            const timer = setInterval(() => {
+                t--;
+                if(t>0) cd.innerText = t;
+                else {
+                    clearInterval(timer);
+                    cd.style.display = 'none';
+                    capture();
+                    count++;
+                    document.getElementById('shot-status').innerText = count + " / 4";
+                    if(count < 4) setTimeout(shotLoop, 1000);
+                    else setTimeout(() => { switchView('view-editor'); render(); }, 500);
+                }
+            }, 800);
+        };
+        shotLoop();
+    }
+
+    function capture() {
+        // Flash
+        const f = document.createElement('div');
+        f.style.cssText = "position:absolute; inset:0; background:white; z-index:99; transition: opacity 0.2s;";
+        document.querySelector('.video-wrap').appendChild(f);
+        setTimeout(()=> f.style.opacity = 0, 50);
+        setTimeout(()=> f.remove(), 250);
+
+        const c = document.createElement('canvas');
+        c.width = video.videoWidth; c.height = video.videoHeight;
+        const cx = c.getContext('2d');
+        if(mirrored) { cx.translate(c.width, 0); cx.scale(-1, 1); }
+        // Capture raw video frames (filters applied in editor)
+        cx.drawImage(video, 0, 0);
+        state.photos.push(c);
+    }
+
+    // --- EDITOR ---
+    function render() {
+        // 1. Layout Config
+        let w, h;
+        if(state.layout === 'strip') { w=600; h=1800; }
+        else if(state.layout === 'grid') { w=1200; h=1600; }
+        else { w=1200; h=1600; } // Single
+
+        canvas.width = w; canvas.height = h;
+
+        // 2. BG
+        if(state.bgImg) {
+            const p = ctx.createPattern(state.bgImg, 'repeat');
+            ctx.fillStyle = p; ctx.fillRect(0,0,w,h);
+        } else {
+            ctx.fillStyle = state.bgColor; ctx.fillRect(0,0,w,h);
+        }
+
+        // 3. Photos
+        drawPhotos(w, h);
+
+        // 4. Drawings
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        state.drawings.forEach(d => {
+            ctx.beginPath();
+            ctx.strokeStyle = '#ff8fab'; ctx.lineWidth = 6;
+            if(d.points.length) ctx.moveTo(d.points[0].x, d.points[0].y);
+            for(let i=1; i<d.points.length; i++) ctx.lineTo(d.points[i].x, d.points[i].y);
+            ctx.stroke();
+        });
+
+        // 5. Stickers
+        state.objects.forEach(o => {
+            ctx.save();
+            ctx.translate(o.x, o.y);
+            ctx.rotate(o.rot);
+            ctx.scale(o.scale, o.scale);
+            ctx.drawImage(o.img, -o.w/2, -o.h/2, o.w, o.h);
+            if(state.activeObj === o) {
+                ctx.strokeStyle = '#333'; ctx.lineWidth = 3;
+                ctx.strokeRect(-o.w/2, -o.h/2, o.w, o.h);
+            }
+            ctx.restore();
+        });
+    }
+
+    function drawPhotos(W, H) {
+        // Filter String
+        let fStr = 'none';
+        if(state.filter === 'pure') fStr = 'brightness(1.1) contrast(0.95)';
+        if(state.filter === 'peach') fStr = 'sepia(0.15) saturate(1.2) brightness(1.05)';
+        if(state.filter === 'mono') fStr = 'grayscale(1) contrast(1.1)';
+        if(state.filter === 'fade') fStr = 'contrast(0.9) brightness(1.1) sepia(0.1)';
+        
+        ctx.filter = fStr;
+
+        if(state.layout === 'strip') {
+            const gap = 30, pad = 40;
+            const pW = W - pad*2; 
+            const pH = (H - pad*2 - gap*3)/4;
+            state.photos.forEach((p, i) => {
+                if(i<4) placeImg(p, pad, pad + i*(pH+gap), pW, pH);
+            });
+        } else if(state.layout === 'grid') {
+            const gap = 30, pad = 50;
+            const pW = (W - pad*2 - gap)/2;
+            const pH = pW * 0.75;
+            const sY = (H - pH*2 - gap)/2;
+            state.photos.forEach((p, i) => {
+                if(i<4) {
+                    const r = Math.floor(i/2), c = i%2;
+                    placeImg(p, pad + c*(pW+gap), sY + r*(pH+gap), pW, pH);
+                }
+            });
+        } else {
+            const pad = 50, pW = W - pad*2, pH = pW * 0.75;
+            if(state.photos[0]) placeImg(state.photos[0], pad, (H-pH)/2, pW, pH);
+        }
+        ctx.filter = 'none';
+    }
+
+    function placeImg(img, x, y, w, h) {
+        ctx.fillStyle = "white"; ctx.fillRect(x-10, y-10, w+20, h+20);
+        
+        const rI = img.width/img.height;
+        const rD = w/h;
+        let sw, sh, sx, sy;
+        if(rI > rD) { sh = img.height; sw = sh*rD; sx = (img.width-sw)/2; sy=0; }
+        else { sw = img.width; sh = sw/rD; sx=0; sy=(img.height-sh)/2; }
+        
+        ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+    }
+
+    // --- TOOLS ---
+    function toggleSub(id) {
+        document.querySelectorAll('.sub-bar').forEach(b => b.classList.remove('active'));
+        document.getElementById('sub-'+id).classList.add('active');
+        state.isDrawing = false;
+        state.activeObj = null;
+        render();
+    }
+    
+    function toggleDraw() { state.isDrawing = !state.isDrawing; state.activeObj = null; render(); }
+    function setLayout(l) { state.layout = l; render(); }
+    function setFilter(f) { state.filter = f; render(); }
+    function setBg(c) { state.bgColor = c; state.bgImg = null; render(); }
+    
+    function handleFile(e) {
+        const f = e.target.files[0];
+        if(!f) return;
+        const r = new FileReader();
+        r.onload = ev => {
+            const img = new Image();
+            img.onload = () => {
+                if(document.getElementById('sub-bg').classList.contains('active')) {
+                    state.bgImg = img;
+                } else {
+                    state.objects.push({
+                        img, x:canvas.width/2, y:canvas.height/2, 
+                        w:300, h:300*(img.height/img.width), rot:0, scale:1
+                    });
+                }
+                render();
+            };
+            img.src = ev.target.result;
+        };
+        r.readAsDataURL(f);
+        e.target.value = '';
+    }
+
+    function save() {
+        const a = document.createElement('a');
+        a.download = 'life4cut_photo.png';
+        a.href = canvas.toDataURL();
+        a.click();
+    }
+
+    // --- TOUCH EVENTS ---
+    let isDrag = false, lastP = {x:0, y:0};
+    
+    function getPos(e) {
+        const r = canvas.getBoundingClientRect();
+        const t = e.touches ? e.touches[0] : e;
+        return {
+            x: (t.clientX - r.left) * (canvas.width / r.width),
+            y: (t.clientY - r.top) * (canvas.height / r.height)
+        };
+    }
+
+    canvas.addEventListener('pointerdown', e => {
+        const p = getPos(e);
+        if(state.isDrawing) {
+            isDrag = true;
+            state.drawings.push({points:[p]});
+            render(); return;
+        }
+        // Hit logic
+        let hit = null;
+        for(let i=state.objects.length-1; i>=0; i--) {
+            const o = state.objects[i];
+            if(Math.abs(p.x - o.x) < o.w/2 && Math.abs(p.y - o.y) < o.h/2) {
+                hit = o; break;
+            }
+        }
+        state.activeObj = hit;
+        if(hit) { isDrag = true; lastP = p; }
+        render();
+    });
+
+    canvas.addEventListener('pointermove', e => {
+        if(!isDrag) return;
+        const p = getPos(e);
+        e.preventDefault();
+        
+        if(state.isDrawing) {
+            state.drawings[state.drawings.length-1].points.push(p);
+            render();
+        } else if(state.activeObj) {
+            state.activeObj.x += p.x - lastP.x;
+            state.activeObj.y += p.y - lastP.y;
+            lastP = p;
+            render();
+        }
+    });
+
+    canvas.addEventListener('pointerup', () => { isDrag = false; });
+
+</script>
+</body>
+</html>
