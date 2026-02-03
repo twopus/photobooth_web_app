@@ -4,399 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Cloud Studio</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&family=Nunito:wght@500;700&family=Klee+One:wght@400;600&family=Pacifico&family=Baloo+2:wght@500;700&family=Comfortaa:wght@500;700&display=swap');
-
-    :root {
-      --bg-room: #121212;
-      --machine-shell: #f0f0f0;
-      --accent: #9cc9ff;
-      --accent-btn: #9cc9ff;
-      --studio-light: #ffffff;
-      --light-int: 0.8;
-      --delete-red: #ff6b6b;
-      --booth-width: 520px;
-      --booth-max-height: 98vh;
-    }
-
-    * { box-sizing: border-box; touch-action: none; user-select: none; -webkit-user-select: none; }
-
-    body {
-      margin: 0;
-      height: 100vh; /* full viewport height */
-      background-color: var(--bg-room);
-      font-family: 'Quicksand', sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 0;
-      background-image:
-        radial-gradient(circle at 50% 30%, rgba(156, 201, 255, 0.35) 0%, transparent 55%),
-        radial-gradient(#222 15%, transparent 16%);
-      background-size: 100% 100%, 40px 40px;
-      background-blend-mode: soft-light, normal;
-      overflow: hidden; /* no scrolling on desktop */
-      transition: background 0.5s ease;
-    }
-
-    /* booth: takes full available height */
-    .booth-structure {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      width: min(100vw - 20px, 520px);
-      height: min(100vh - 20px, 98vh); /* full height minus margins */
-      max-height: none;
-      position: relative;
-      margin: 0 auto;
-    }
-
-    .top-light-cap {
-      width: 100%; 
-      aspect-ratio: 8.7 / 1;
-      background: var(--studio-light);
-      border-radius: 40px 40px 15px 15px;
-      margin-bottom: 2%; z-index: 2;
-      box-shadow: 0 0 calc(30px * var(--light-int)) var(--studio-light);
-      border: 4px solid #fff; position: relative;
-      transition: background 0.3s, box-shadow 0.3s;
-    }
-    .top-light-cap::after {
-      content: ''; position: absolute; top: 10%; left: 5%; width: 90%; height: 40%;
-      background: linear-gradient(180deg, rgba(255,255,255,0.8), rgba(255,255,255,0));
-      border-radius: 20px; opacity: 0.6;
-    }
-
-    .booth-casing {
-      flex: 1; width: 100%; background: var(--machine-shell);
-      border-radius: 40px; padding: 3%; display: flex; flex-direction: column;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.5); position: relative;
-      min-height: 0;
-    }
-
-    .camera-deco { width: 100%; display: flex; justify-content: center; margin-bottom: 2%; flex-shrink: 0; }
-    .lens-circle {
-      width: clamp(30px, 6%, 50px); 
-      aspect-ratio: 1;
-      background: #333; border-radius: 50%;
-      border: 4px solid #ddd; position: relative;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-    }
-    .lens-circle::after {
-      content: ''; position: absolute; top: 25%; left: 25%; width: 50%; height: 50%;
-      background: #111; border-radius: 50%; border: 2px solid #555;
-    }
-
-    .main-stage { 
-      flex: 1; display: flex; gap: 2%; position: relative; 
-      height: 100%; overflow: hidden; min-height: 0;
-    }
-
-    .side-light {
-      width: 8%;
-      min-width: 25px;
-      background: var(--studio-light);
-      border-radius: 50px;
-      box-shadow: 0 0 calc(20px * var(--light-int)) var(--studio-light),
-                  inset 0 0 calc(15px * var(--light-int)) var(--studio-light);
-      opacity: calc(0.4 + (0.6 * var(--light-int)));
-      transition: background 0.3s, box-shadow 0.3s, opacity 0.3s;
-      flex-shrink: 0;
-    }
-
-    .screen-container {
-      flex: 1;
-      background: #fff;
-      border-radius: 25px;
-      position: relative;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      border: 6px solid #e6f2ff;
-      box-shadow: 0 0 25px rgba(156, 201, 255, 0.25);
-      min-height: 0;
-      /* removed max-height constraint for desktop */
-    }
-
-    .view { flex: 1; display: none; flex-direction: column; position: relative; background: #fff; width: 100%; height: 100%; }
-    .view.active { display: flex; }
-
-    .start-view { justify-content: center; align-items: center; background: #f6f9ff; text-align:center; }
-    .logo-cloud { font-size: clamp(3rem, 12vw, 5rem); margin-bottom: 6px; animation: float 3s infinite ease-in-out; }
-    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
-    .start-view h1 { margin: 0 0 8px 0; color: #4d7fc7; font-size: clamp(1.5rem, 6vw, 2.5rem); }
-    .btn-main {
-      padding: clamp(12px, 3vw, 16px) clamp(30px, 8vw, 50px); 
-      background: var(--accent-btn); color: white;
-      border: none; border-radius: 50px; font-size: clamp(0.9rem, 3vw, 1.1rem); font-weight: 700;
-      box-shadow: 0 8px 20px rgba(156, 201, 255, 0.5); cursor: pointer;
-    }
-
-    .camera-area { flex: 1; position: relative; background: #000; overflow: hidden; min-height: 0; }
-    video { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
-    .mirrored { transform: scaleX(-1); }
-    .countdown {
-      position: absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-      font-size: clamp(4rem, 20vw, 9rem); color: #fff; text-shadow: 0 5px 25px rgba(0,0,0,0.5);
-      font-weight: 700; display: none; z-index: 20;
-    }
-    .light-hue {
-      position: absolute; inset: 0; background: var(--studio-light);
-      opacity: 0.35; mix-blend-mode: soft-light; pointer-events: none;
-    }
-
-    .cam-ui {
-      height: auto; background: #fff; display: flex; flex-direction: column;
-      align-items: center; justify-content: center; padding: clamp(8px, 2vw, 10px); 
-      gap: clamp(6px, 1.5vw, 10px); border-top: 2px solid #e6f2ff;
-      flex-shrink: 0; overflow-y: auto;
-    }
-    .controls-row { display: flex; align-items: center; gap: 20px; width: 100%; justify-content: center; }
-    .shutter-ring {
-      width: 70px; height: 70px; border-radius: 50%; border: 4px solid var(--accent);
-      padding: 4px; cursor: pointer; transition: transform 0.1s;
-    }
-    .shutter-ring:active { transform: scale(0.95); }
-    .shutter-ring.disabled { opacity: 0.5; pointer-events: none; border-color: #ccc; }
-    .shutter-inner { width: 100%; height: 100%; background: var(--accent); border-radius: 50%; }
-    .shutter-ring.disabled .shutter-inner { background: #ccc; }
-
-    .light-picker-btn {
-      width: 44px; height: 44px; border-radius: 50%; overflow: hidden;
-      border: 3px solid #e6efff; position: relative;
-      background: radial-gradient(circle at 30% 30%, #ffffff, #d7e9ff);
-      box-shadow: 0 4px 10px rgba(156, 201, 255, 0.35);
-    }
-    .light-picker-btn.active {
-      background-image: conic-gradient(red, yellow, lime, aqua, blue, magenta, red);
-      box-shadow: 0 0 10px rgba(255,255,255,0.7);
-    }
-    input[type="color"] { position: absolute; top:-50%; left:-50%; width:200%; height:200%; opacity:0; cursor: pointer; }
-    input[type="range"] { accent-color: var(--accent-btn); width: 140px; }
-    .sun-slider {
-      display: flex; align-items: center; gap: 8px; justify-content: center; width: 100%;
-    }
-    .sun-icon {
-      width: 20px; height: 20px; stroke: #ffcc70; fill: none;
-    }
-    .range-cute {
-      -webkit-appearance: none;
-      appearance: none;
-      height: 10px;
-      border-radius: 999px;
-      background: #e6f2ff;
-      outline: none;
-      width: 160px;
-      border: none;
-    }
-    .range-cute::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 22px; height: 22px; border-radius: 50%;
-      background: #fff; border: 2px solid #9cc9ff;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-      cursor: pointer;
-    }
-    .range-cute::-moz-range-thumb {
-      width: 22px; height: 22px; border-radius: 50%;
-      background: #fff; border: 2px solid #9cc9ff;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-      cursor: pointer;
-      border: 2px solid #9cc9ff;
-    }
-    .range-cute::-moz-range-track {
-      height: 10px; border-radius: 999px;
-      background: #e6f2ff;
-      border: none;
-    }
-
-    .btn-small { padding: 8px 15px; background: #eee; border-radius: 20px; font-size: 0.8rem; font-weight: 700; border: none; color: #666; cursor: pointer; font-family: 'Quicksand', sans-serif; }
-    .btn-finish { background: #444; color: white; display: none; margin-top: 5px; }
-
-    .select-view { padding: 15px; background: #fafafa; font-family: 'Quicksand', sans-serif; }
-    .layout-options { display: flex; gap: 5px; margin-bottom: 5px; justify-content: center; flex-wrap: wrap; }
-    .sub-options { display: flex; gap: 5px; margin-bottom: 10px; justify-content: center; height: 30px; }
-    .layout-btn { padding: 10px 15px; border-radius: 999px; border: 1px solid #ddd; background: white; color: #666; font-weight: 700; cursor: pointer; font-family: 'Quicksand', sans-serif; }
-    .layout-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
-    .sub-btn { font-size: 0.75rem; padding: 6px 12px; border: 1px solid #ccc; border-radius: 999px; background: #fff; cursor: pointer; font-family: 'Quicksand', sans-serif; font-weight: 700; }
-    .sub-btn.active { background: #555; color: white; border-color: #555; }
-
-    .grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; overflow-y: auto; flex: 1; align-content: start; }
-    .thumb-wrap { aspect-ratio: 1; border-radius: 8px; overflow: hidden; border: 3px solid transparent; cursor: pointer; opacity: 0.6; }
-    .thumb-wrap.selected { border-color: var(--accent); opacity: 1; }
-    .thumb-wrap img { width: 100%; height: 100%; object-fit: cover; }
-
-    .editor-view { background: #eef; display: none; flex-direction: column; }
-    .editor-view.active { display: flex; }
-
-    .editor-controls {
-      display: flex; gap: 8px; padding: 8px;
-      background: #fff; border-bottom: 1px solid #ddd;
-      flex-shrink: 0;
-      position: absolute; top: 10px; left: 10px; z-index: 10;
-      border-radius: 8px;
-    }
-    .editor-controls .tool-btn {
-      min-width: 35px; height: 35px; border: 1px solid #e6f2ff;
-      border-radius: 8px; background: white; cursor: pointer;
-      color: #555; display: flex; align-items: center; justify-content: center;
-      padding: 0;
-    }
-    .editor-controls .tool-btn:hover { background: #eaf3ff; border-color: var(--accent-btn); }
-    .editor-controls .tool-icon { width: 18px; height: 18px; }
-    
-    .editor-main { 
-      flex: 1; display: flex; flex-direction: column; 
-      min-height: 0; position: relative;
-    }
-    .canvas-area { 
-      flex: 1; display: flex; align-items: center; justify-content: center;
-      padding: clamp(15px, 3vw, 20px); overflow: auto; position: relative;
-      background-image: radial-gradient(#dbe7ff 1px, transparent 1px);
-      background-size: 18px 18px;
-    }
-
-    .toolbar {
-      background: #fff; padding: clamp(12px, 2vw, 15px); border-top: 1px solid #eee;
-      display: flex; flex-direction: column; gap: clamp(8px, 1.5vw, 10px); 
-      border-radius: 30px 30px 0 0;
-      flex-shrink: 0; overflow-y: auto;
-    }
-
-    .tool-section {
-      display: flex;
-      gap: clamp(6px, 1.5vw, 10px);
-      overflow-x: auto;
-      overflow-y: hidden;
-      padding-bottom: 5px;
-      scrollbar-width: none;
-      align-items: center;
-      justify-content: flex-start;
-      flex-wrap: nowrap;
-      width: 100%;
-      -webkit-overflow-scrolling: touch;
-      touch-action: pan-x;
-    }
-
-    .tool-btn {
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      min-width: clamp(60px, 12vw, 70px); 
-      height: clamp(50px, 10vw, 60px); 
-      border: 1px solid #e6f2ff; border-radius: 20px;
-      background: white; cursor: pointer; gap: 2px; flex-shrink: 0;
-      color: #555; font-size: clamp(0.5rem, 1.5vw, 0.8rem);
-    }
-    .tool-btn.active { border-color: var(--accent-btn); background: #eaf3ff; }
-    .tool-icon {
-      width: clamp(20px, 4vw, 28px);
-      height: clamp(20px, 4vw, 28px);
-      color: #555;
-      transition: color 0.2s ease;
-    }
-    .tool-btn.active .tool-icon {
-      color: var(--accent-btn);
-    }
-    .tool-btn:hover .tool-icon {
-      color: var(--accent-btn);
-    }
-
-    .context-bar {
-      background: #f8f8f8; padding: clamp(8px, 1.5vw, 10px); border-radius: 20px;
-      display: none; align-items: center; justify-content: flex-start; gap: clamp(6px, 1.5vw, 10px);
-      overflow-x: auto; overflow-y: hidden; white-space: nowrap; scrollbar-width: none;
-      -webkit-overflow-scrolling: touch;
-      touch-action: pan-x;
-      flex-shrink: 0;
-    }
-    .context-bar::-webkit-scrollbar { display: none; }
-    .text-input {
-      padding: 6px 10px; border-radius: 999px; border: 1px solid #d7dbea;
-      min-width: 160px; font-size: 0.85rem;
-    }
-    .zoom-bar {
-      position: absolute; top: 10px; right: 10px;
-      display: flex; align-items: center; gap: 6px;
-      background: rgba(255,255,255,0.9); padding: 6px 10px; border-radius: 999px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    .context-bar.active { display: flex; }
-
-    .color-wheel-container {
-      display: flex; align-items: center; gap: 10px; padding: 8px;
-      background: #f8f8f8; border-radius: 20px; flex-shrink: 0;
-    }
-    .color-wheel {
-      width: 50px; height: 50px; border-radius: 50%;
-      background: conic-gradient(red, yellow, lime, cyan, blue, magenta, red);
-      cursor: pointer; border: 3px solid #fff;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    }
-    .text-obj-controls {
-      position: absolute; bottom: 10px; left: 10px; z-index: 5;
-      display: flex; gap: 8px; padding: 8px;
-      background: #fff; border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    .text-obj-controls.hidden { display: none; }
-
-    canvas { 
-      max-width: 100%;
-      max-height: 100%;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-      background: white;
-      object-fit: contain;
-      cursor: crosshair;
-    }
-
-    /* mobile adjustments for phones (< 600px) */
-    @media (max-width: 600px) {
-      body {
-        height: auto; /* allow scroll on mobile */
-        min-height: 100vh;
-        align-items: flex-start;
-        padding: 10px 0;
-        overflow-y: auto;
-      }
-
-      .booth-structure {
-        width: min(100vw - 10px, 100%);
-        height: auto; /* natural height on mobile */
-        max-height: none;
-        padding: 0 5px;
-      }
-      
-      .screen-container {
-        max-height: 55vh; /* constrain on mobile so toolbar is reachable */
-        border-radius: 15px;
-        border-width: 3px;
-      }
-
-      .cam-ui {
-        padding: clamp(6px, 1.5vw, 8px);
-        gap: clamp(4px, 1vw, 8px);
-      }
-
-      .toolbar {
-        padding: clamp(8px, 1.5vw, 12px);
-        gap: clamp(6px, 1vw, 8px);
-      }
-
-      .tool-btn {
-        min-width: clamp(50px, 10vw, 65px);
-        height: clamp(45px, 9vw, 55px);
-      }
-
-      .btn-main {
-        padding: clamp(10px, 2.5vw, 14px) clamp(25px, 6vw, 40px);
-        font-size: clamp(0.8rem, 2.5vw, 1rem);
-      }
-
-      .top-light-cap {
-        aspect-ratio: 10 / 1; /* wider on mobile */
-        margin-bottom: 3%;
-      }
-    }
-  </style>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
@@ -408,64 +16,52 @@
       <div class="side-light"></div>
       <div class="screen-container">
 
+        <!-- Start View -->
         <div id="view-start" class="view active start-view">
           <div class="logo-cloud">☁️</div>
           <h1>Cloud Studio</h1>
           <button class="btn-main" onclick="startCamera()">Enter Booth</button>
         </div>
 
+        <!-- Camera View -->
         <div id="view-camera" class="view">
           <div class="camera-area">
             <video id="video" class="mirrored" autoplay playsinline></video>
             <div class="light-hue"></div>
             <div class="countdown" id="countdown">3</div>
-            <div id="flash-fx" style="position:absolute; inset:0; background:white; opacity:0; pointer-events:none;"></div>
+            <div id="flash-fx"></div>
           </div>
           <div class="cam-ui">
-            <div style="display:flex; justify-content:center; width:100%; align-items:center; position:relative;">
-              <div id="shot-status" style="font-size:0.9rem; font-weight:700;">0 / 8</div>
-              <button onclick="toggleInvert()" class="btn-small" style="position:absolute; right:0; font-size:1.2rem; padding: 4px 10px;">⇄</button>
+            <div class="status-row">
+              <div id="shot-status">0 / 8</div>
+              <button onclick="toggleInvert()" class="btn-small invert-btn">⇄</button>
             </div>
 
-            <div class="sun-slider">
-              <svg class="sun-icon" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-              </svg>
-              <input class="range-cute" type="range" min="0" max="1" step="0.1" value="0.8" oninput="updateIntensity(this.value)">
-              <svg class="sun-icon" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="6"/>
-                <line x1="12" y1="1" x2="12" y2="3"/>
-                <line x1="12" y1="21" x2="12" y2="23"/>
-                <line x1="1" y1="12" x2="3" y2="12"/>
-                <line x1="21" y1="12" x2="23" y2="12"/>
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-              </svg>
-            </div>
+            <div id="live-filter-bar"></div>
 
             <div class="controls-row">
-              <div class="light-picker-btn" id="light-picker-btn">
-                <input type="color" id="light-picker" oninput="changeStudioLight(this.value)" value="#cfe7ff">
-              </div>
-              <div id="shutter-btn" class="shutter-ring" onclick="triggerCapture()"><div class="shutter-inner"></div></div>
-              <div style="width:40px;"></div>
+              <div id="shutter-btn" class="shutter-ring"><div class="shutter-inner"></div></div>
             </div>
-            <button id="btn-finish" class="btn-small btn-finish" onclick="finishSession()">Finish & Edit →</button>
+            <button id="btn-finish" class="btn-finish">Finish & Edit →</button>
           </div>
         </div>
 
+        <!-- Selection View -->
         <div id="view-select" class="view select-view">
-          <h4 style="text-align:center; margin:0 0 5px 0; font-family: 'Quicksand', sans-serif;">Layout</h4>
+          <h4>Layout</h4>
           <div class="layout-options" id="layout-buttons"></div>
           <div id="sub-options" class="sub-options"></div>
 
-          <h4 id="select-instruction" style="text-align:center; margin:5px 0; font-family: 'Quicksand', sans-serif;">Select Photos</h4>
+          <h4 id="select-instruction">Select Photos</h4>
           <div class="grid-container" id="thumb-grid"></div>
-          <button id="btn-confirm" class="btn-main" style="width:100%; opacity: 0.5; pointer-events: none;" onclick="goToEditor()">Design</button>
+
+          <div class="select-actions">
+            <button class="btn-small retake-btn" onclick="startCamera()">Take More Photos</button>
+            <button id="btn-confirm" class="btn-main" disabled onclick="goToEditor()">Design</button>
+          </div>
         </div>
 
+        <!-- Editor View -->
         <div id="view-edit" class="view editor-view">
           <div class="editor-controls">
             <button class="tool-btn" onclick="undo()" title="Undo">
@@ -478,18 +74,20 @@
                 <path d="M21 7v6h-6M3 17a9 9 0 019-9 9 9 0 016 2.3l3 2.7"/>
               </svg>
             </button>
+            <button class="tool-btn back-btn" onclick="switchView('view-select')">← Back</button>
           </div>
 
           <div class="editor-main">
             <div class="canvas-area">
               <canvas id="canvas"></canvas>
               <div class="zoom-bar">
-                <span style="font-size:0.8rem;">Zoom</span>
+                <span>Zoom</span>
                 <input class="range-cute" type="range" min="0.5" max="2" step="0.05" value="1" oninput="setZoom(this.value)">
               </div>
             </div>
 
             <div class="toolbar">
+              <!-- Filter Menu -->
               <div id="filter-menu" class="context-bar">
                 <button class="btn-small" onclick="setFilter('none')">Normal</button>
                 <button class="btn-small" onclick="setFilter('bw')">B&W</button>
@@ -505,72 +103,63 @@
                   <span style="font-size:0.7rem;">Strength</span>
                   <input class="range-cute" type="range" min="0" max="1" step="0.05" value="0.8" oninput="setFilterIntensity(this.value)">
                 </div>
-                <button class="btn-small" style="background:var(--accent); color:white;" onclick="closeMenus()">Done</button>
               </div>
 
+              <!-- Background Menu -->
               <div id="bg-menu" class="context-bar">
                 <div class="color-wheel-container">
                   <span style="font-size: 0.85rem; font-weight: 700;">Background:</span>
-                  <div class="color-wheel" onclick="document.getElementById('bg-color-input').click()" title="Pick color"></div>
-                  <input type="color" id="bg-color-input" style="display:none;" value="#ffffff" oninput="setBgColor(this.value)">
+                  <input type="color" id="bg-color-input" value="#ffffff" oninput="state.bgColor = this.value; renderCanvas();">
                   <button class="btn-small" onclick="document.getElementById('bg-image-input').click()">+ Image</button>
-                  <input type="file" id="bg-image-input" accept="image/*" style="display:none;" onchange="setBgImage(event)">
+                  <input type="file" id="bg-image-input" accept="image/*" style="display:none;" onchange="addBgImage(event)">
                 </div>
-                <button class="btn-small" style="background:var(--accent); color:white;" onclick="closeMenus()">Done</button>
               </div>
 
+              <!-- Draw Menu -->
               <div id="draw-menu" class="context-bar">
                 <button class="btn-small" onclick="setBrush('marker')">Marker</button>
                 <button class="btn-small" onclick="setBrush('pencil')">Pencil</button>
                 <button class="btn-small" onclick="setBrush('highlighter')">Highlighter</button>
-                <button class="btn-small" onclick="setBrush('dotted')">Dashed</button>
-                <button class="btn-small" onclick="setBrush('dots')">Dots</button>
                 <button class="btn-small" onclick="setBrush('eraser')">Eraser</button>
                 <div style="display: flex; align-items: center; gap: 6px;">
                   <span style="font-size: 0.7rem;">Color:</span>
-                  <input type="color" value="#000000" onchange="state.drawColor = this.value" style="width:35px; height:35px; border: 2px solid #ddd; border-radius: 6px; cursor: pointer;">
+                  <input type="color" id="draw-color" value="#000000" onchange="state.drawColor = this.value" style="width:35px; height:35px; border: 2px solid #ddd; border-radius: 6px; cursor: pointer;">
                 </div>
                 <div id="size-control" style="display:flex; align-items:center; gap:6px;">
                   <span style="font-size:0.7rem;">Size</span>
-                  <svg id="size-preview" viewBox="0 0 40 40" style="width:30px; height:30px;">
-                    <circle cx="20" cy="20" r="4" fill="#000000"/>
-                  </svg>
                   <input class="range-cute" type="range" min="2" max="30" value="8" style="width:100px;" oninput="updateBrushSize(this.value)">
                 </div>
-                <button class="btn-small" style="background:var(--delete-red); color:white;" onclick="toggleDrawMode()">Done</button>
               </div>
 
+              <!-- Text Menu -->
               <div id="text-menu" class="context-bar">
                 <input id="text-edit" class="text-input" type="text" placeholder="Edit text..." oninput="updateActiveText(this.value)">
-                <select onchange="updateActiveFont(this.value)" style="padding:5px; border-radius:10px; font-family:'Quicksand';">
-                  <option value="Quicksand">Bubble Soft</option>
-                  <option value="Nunito">Clean Bold</option>
-                  <option value="Klee One">Playful Fun</option>
-                  <option value="Pacifico">Groovy Script</option>
-                  <option value="Baloo 2">Rounded Heavy</option>
-                  <option value="Comfortaa">Comfy Rounded</option>
+                <select id="text-font" onchange="updateActiveFont(this.value)" style="padding:5px; border-radius:10px; font-family:'Quicksand';">
+                  <option value="Quicksand">Quicksand</option>
+                  <option value="Nunito">Nunito</option>
+                  <option value="Klee One">Klee One</option>
+                  <option value="Pacifico">Pacifico</option>
+                  <option value="Baloo 2">Baloo 2</option>
+                  <option value="Comfortaa">Comfortaa</option>
                 </select>
                 <input type="color" id="text-color" oninput="updateActiveColor(this.value)" style="width:35px; height:35px; border: 2px solid #ddd; border-radius: 6px;" title="Text Color">
                 <button class="btn-small" style="background:var(--delete-red); color:white;" onclick="deleteActiveObject()">Delete</button>
-                <button class="btn-small" style="background:var(--accent); color:white;" onclick="closeMenus()">Done</button>
               </div>
 
-              <div class="text-obj-controls hidden" id="text-obj-controls" style="display:none;">
-              </div>
-
+              <!-- Tool Buttons -->
               <div class="tool-section">
-                <button class="tool-btn" onclick="openMenu('filter')">
+                <button class="tool-btn" onclick="openMenu('filter-menu')">
                   <svg class="tool-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="9"/>
                   </svg>
-                  <span class="label">Filter</span>
+                  <span>Filter</span>
                 </button>
 
-                <button class="tool-btn" onclick="openMenu('bg')">
+                <button class="tool-btn" onclick="openMenu('bg-menu')">
                   <svg class="tool-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="2" y="2" width="20" height="20" rx="2"/>
                   </svg>
-                  <span class="label">BG</span>
+                  <span>BG</span>
                 </button>
 
                 <button class="tool-btn" onclick="addText()">
@@ -578,14 +167,14 @@
                     <line x1="4" y1="21" x2="20" y2="21"/>
                     <text x="8" y="14" font-size="10" font-weight="bold" fill="currentColor">A</text>
                   </svg>
-                  <span class="label">Text</span>
+                  <span>Text</span>
                 </button>
 
-                <button id="btn-draw" class="tool-btn" onclick="toggleDrawMode()">
+                <button id="btn-draw" class="tool-btn" onclick="openMenu('draw-menu')">
                   <svg class="tool-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L21 3z"/>
                   </svg>
-                  <span class="label">Draw</span>
+                  <span>Draw</span>
                 </button>
 
                 <label class="tool-btn">
@@ -594,7 +183,7 @@
                     <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
                     <path d="M21 15l-5-5-8 8-3-4"/>
                   </svg>
-                  <span class="label">Media</span>
+                  <span>Media</span>
                   <input type="file" hidden accept="image/*" onchange="addMedia(event)">
                 </label>
 
@@ -602,7 +191,7 @@
                   <svg class="tool-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
                   </svg>
-                  <span class="label">Save</span>
+                  <span>Save</span>
                 </button>
               </div>
             </div>
@@ -615,826 +204,6 @@
   </div>
 </div>
 
-<script>
-  const CONFIG = { gap: 20 };
-  const MAX_SHOTS = 8;
-
-  let state = {
-    photos: [],
-    selectedIndices: [],
-    targetCount: 4,
-    layoutSubMode: 'grid',
-    bgColor: '#ffffff',
-    bgImage: null,
-    objects: [],
-    activeObj: null,
-    isMirrored: true,
-
-    isDrawing: false,
-    brushType: 'marker',
-    drawColor: '#000000',
-    drawPaths: [],
-    brushSize: 8,
-    filterType: 'none',
-    filterIntensity: 0.8,
-    zoom: 1,
-    
-    history: [],
-    historyStep: -1
-  };
-
-  const video = document.getElementById('video');
-  const canvas = document.getElementById('canvas');
-  const ctx = canvas.getContext('2d');
-  const drawLayer = document.createElement('canvas');
-  const drawCtx = drawLayer.getContext('2d');
-
-  function changeStudioLight(color) {
-    document.documentElement.style.setProperty('--studio-light', color);
-    const btn = document.getElementById('light-picker-btn');
-    if (btn) btn.classList.add('active');
-  }
-  function updateIntensity(val) { document.documentElement.style.setProperty('--light-int', val); }
-  function toggleInvert() { state.isMirrored = !state.isMirrored; video.classList.toggle('mirrored', state.isMirrored); }
-
-  async function startCamera() {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
-      video.srcObject = stream;
-      switchView('view-camera');
-      updateCamUI();
-    } catch(e) { alert('Camera access required.'); }
-  }
-
-  let isCapturing = false;
-  function triggerCapture() {
-    if(isCapturing || state.photos.length >= MAX_SHOTS) return;
-    isCapturing = true;
-    document.getElementById('shutter-btn').classList.add('disabled');
-
-    let count = 3;
-    const countEl = document.getElementById('countdown');
-    countEl.style.display = 'block'; countEl.innerText = count;
-
-    const timer = setInterval(() => {
-      count--;
-      if(count > 0) countEl.innerText = count;
-      else { clearInterval(timer); countEl.style.display = 'none'; snap(); }
-    }, 1000);
-  }
-
-  function snap() {
-    const flash = document.getElementById('flash-fx');
-    flash.style.opacity = 1; setTimeout(() => flash.style.opacity = 0, 150);
-
-    const c = document.createElement('canvas');
-    c.width = 640; c.height = 480;
-    const cx = c.getContext('2d');
-    cx.filter = 'none';
-    if(state.isMirrored) { cx.translate(640,0); cx.scale(-1,1); }
-
-    const vw = video.videoWidth, vh = video.videoHeight;
-    const aspect = 640/480;
-    let sx, sy, sw, sh;
-    if(vw/vh > aspect) { sh = vh; sw = sh*aspect; sy = 0; sx = (vw-sw)/2; }
-    else { sw = vw; sh = sw/aspect; sx = 0; sy = (vh-sh)/2; }
-    cx.drawImage(video, sx, sy, sw, sh, 0, 0, 640, 480);
-
-    state.photos.push(c);
-    isCapturing = false;
-    document.getElementById('shutter-btn').classList.remove('disabled');
-    updateCamUI();
-    if(state.photos.length === MAX_SHOTS) finishSession();
-  }
-
-  function updateCamUI() {
-    document.getElementById('shot-status').innerText = `${state.photos.length} / ${MAX_SHOTS}`;
-    document.getElementById('btn-finish').style.display = state.photos.length > 0 ? 'block' : 'none';
-  }
-
-  function finishSession() {
-    if(video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
-    setupSelectionScreen();
-  }
-
-  function setupSelectionScreen() {
-    switchView('view-select');
-    const layoutDiv = document.getElementById('layout-buttons');
-    layoutDiv.innerHTML = '';
-
-    const options = [1,2,4,6,8].filter(n => n <= state.photos.length);
-    const defaultOpt = options.includes(4) ? 4 : options[options.length-1];
-
-    options.forEach(opt => {
-      const btn = document.createElement('button');
-      btn.className = 'layout-btn'; btn.innerText = opt;
-      btn.onclick = () => setFrameTarget(opt, btn);
-      if(opt === defaultOpt) { btn.classList.add('active'); state.targetCount = opt; }
-      layoutDiv.appendChild(btn);
-    });
-
-    updateSubOptions();
-    renderThumbnails();
-    updateSelectInstruction();
-  }
-
-  function setFrameTarget(n, btnEl) {
-    state.targetCount = n;
-    document.querySelectorAll('.layout-btn').forEach(b => b.classList.remove('active'));
-    btnEl.classList.add('active');
-    state.selectedIndices = [];
-    updateSubOptions();
-    renderThumbnails();
-    updateSelectInstruction();
-  }
-
-  function updateSubOptions() {
-    const subDiv = document.getElementById('sub-options');
-    subDiv.innerHTML = '';
-    state.layoutSubMode = 'grid';
-
-    if(state.targetCount === 2) {
-      const opts = [{l:'Left/Right', v:'horiz'}, {l:'Top/Bottom', v:'vert'}];
-      state.layoutSubMode = 'horiz';
-      opts.forEach(o => createSubBtn(o, subDiv));
-    } else if (state.targetCount === 4) {
-      const opts = [{l:'2x2 Grid', v:'grid'}, {l:'Vertical Strip', v:'strip'}];
-      state.layoutSubMode = 'grid';
-      opts.forEach(o => createSubBtn(o, subDiv));
-    }
-  }
-
-  function createSubBtn(opt, container) {
-    const btn = document.createElement('button');
-    btn.className = `sub-btn ${state.layoutSubMode === opt.v ? 'active' : ''}`;
-    btn.innerText = opt.l;
-    btn.onclick = () => {
-      state.layoutSubMode = opt.v;
-      document.querySelectorAll('.sub-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-    };
-    container.appendChild(btn);
-  }
-
-  function renderThumbnails() {
-    const grid = document.getElementById('thumb-grid'); grid.innerHTML = '';
-    state.photos.forEach((photoCanvas, idx) => {
-      const wrap = document.createElement('div'); wrap.className = 'thumb-wrap';
-      if(state.selectedIndices.includes(idx)) wrap.classList.add('selected');
-      const img = new Image(); img.src = photoCanvas.toDataURL();
-      wrap.appendChild(img);
-      wrap.onclick = () => toggleSelect(idx);
-      grid.appendChild(wrap);
-    });
-    checkConfirmButton();
-  }
-
-  function toggleSelect(idx) {
-    const i = state.selectedIndices.indexOf(idx);
-    if(i > -1) state.selectedIndices.splice(i, 1);
-    else if(state.selectedIndices.length < state.targetCount) state.selectedIndices.push(idx);
-    renderThumbnails(); updateSelectInstruction();
-  }
-
-  function updateSelectInstruction() {
-    document.getElementById('select-instruction').innerText = `Select ${state.selectedIndices.length} / ${state.targetCount}`;
-  }
-
-  function checkConfirmButton() {
-    const btn = document.getElementById('btn-confirm');
-    if(state.selectedIndices.length === state.targetCount) { btn.style.opacity = 1; btn.style.pointerEvents = 'auto'; }
-    else { btn.style.opacity = 0.5; btn.style.pointerEvents = 'none'; }
-  }
-
-  function goToEditor() {
-    switchView('view-edit');
-
-    const num = state.targetCount;
-    const mode = state.layoutSubMode;
-    
-    if (num === 1) {
-      canvas.width = 400;
-      canvas.height = 600;
-    }
-    else if (num === 2) {
-      if(mode === 'vert') {
-        canvas.width = 400;
-        canvas.height = 800;
-      } else {
-        canvas.width = 600;
-        canvas.height = 400;
-      }
-    }
-    else if (num === 4) {
-      if(mode === 'strip') {
-        canvas.width = 300;
-        canvas.height = 1200;
-      } else {
-        canvas.width = 600;
-        canvas.height = 600;
-      }
-    }
-    else if (num === 6) {
-      canvas.width = 600;
-      canvas.height = 800;
-    }
-    else if (num === 8) {
-      canvas.width = 600;
-      canvas.height = 960;
-    }
-    
-    drawLayer.width = canvas.width;
-    drawLayer.height = canvas.height;
-
-    setZoom(1);
-    renderCanvas();
-    setupInteractions();
-  }
-
-  /* improved pointer interactions: pointer capture, ignore non-primary, handle scale/size vs rotation */
-let activePointer = null; // global to persist across function calls
-let activePointerId = null;
-
-function setupInteractions() {
-	canvas.style.touchAction = 'none';
-
-	canvas.addEventListener('pointerdown', (e) => {
-		if (e.button !== 0) return;
-		e.preventDefault();
-		const { x, y } = clientToCanvas(e.clientX, e.clientY);
-		try { canvas.setPointerCapture(e.pointerId); } catch(_) {}
-		activePointerId = e.pointerId;
-		
-		// drawing mode
-		if (state.isDrawing) {
-			const path = { type: state.brushType, color: state.drawColor, size: state.brushSize, points: [{ x, y }] };
-			state.drawPaths.push(path);
-			activePointer = { mode: 'draw', id: e.pointerId, path };
-			return;
-		}
-		
-		// hit test top-down using measured bounds
-		let clicked = null;
-		for (let i = state.objects.length - 1; i >= 0; i--) {
-			const obj = state.objects[i];
-			const b = getObjectBounds(obj);
-			const { inside } = pointInObjectLocal(obj, x, y, b.w, b.h);
-			if (inside) { clicked = { obj, bounds: b }; break; }
-		}
-		if (!clicked) {
-			state.activeObj = null;
-			renderCanvas();
-			return;
-		}
-		
-		const o = clicked.obj, b = clicked.bounds;
-		const cos = Math.cos(o.rot || 0), sin = Math.sin(o.rot || 0);
-		const hx = o.x + ((b.w/2) * cos - (b.h/2) * sin);
-		const hy = o.y + ((b.w/2) * sin + (b.h/2) * cos);
-		const ddx = x - hx, ddy = y - hy;
-		const distHandle = Math.sqrt(ddx*ddx + ddy*ddy);
-
-		state.activeObj = o;
-		renderCanvas();
-
-		if (distHandle <= 14) {
-			activePointer = {
-				mode: 'handle',
-				id: e.pointerId,
-				obj: o,
-				startX: x, startY: y,
-				startFontSize: o.fontSize || 50,
-				startScale: (o.scale == null) ? 1 : o.scale,
-				startRot: o.rot || 0
-			};
-			return;
-		}
-
-		activePointer = { mode: 'move', id: e.pointerId, obj: o, offsetX: x - o.x, offsetY: y - o.y };
-	}, false);
-
-	document.addEventListener('pointermove', (e) => {
-		if (!activePointer || (activePointer.id != null && e.pointerId !== activePointer.id)) return;
-		e.preventDefault();
-		const { x, y } = clientToCanvas(e.clientX, e.clientY);
-
-		if (activePointer.mode === 'draw') {
-			activePointer.path.points.push({ x, y });
-			renderCanvas();
-			return;
-		}
-		if (activePointer.mode === 'move') {
-			const o = activePointer.obj;
-			o.x = x - activePointer.offsetX;
-			o.y = y - activePointer.offsetY;
-			renderCanvas();
-			return;
-		}
-		if (activePointer.mode === 'handle') {
-			const o = activePointer.obj;
-			const dx = x - activePointer.startX;
-			const dy = y - activePointer.startY;
-			o.rot = activePointer.startRot + dx * 0.008;
-			if (o.type === 'text') {
-				o.fontSize = Math.max(8, Math.round(activePointer.startFontSize + dy * 0.35));
-			} else if (o.type === 'image') {
-				o.scale = Math.max(0.1, activePointer.startScale + dy * 0.005);
-			}
-			renderCanvas();
-			return;
-		}
-	}, false);
-
-	document.addEventListener('pointerup', (e) => {
-		if (!activePointer || (activePointer.id != null && e.pointerId !== activePointer.id)) return;
-		try { canvas.releasePointerCapture && canvas.releasePointerCapture(e.pointerId); } catch(_) {}
-		activePointer = null;
-		activePointerId = null;
-		saveHistory();
-	}, false);
-}
-  // helper: convert client coords to canvas pixel coords (accounts for CSS scale)
-  function clientToCanvas(clientX, clientY) {
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    return {
-      x: (clientX - rect.left) * scaleX,
-      y: (clientY - rect.top) * scaleY,
-      rect
-    };
-  }
-
-  // hit test point inside an object's axis-aligned box in object-local coords
-  function pointInObjectLocal(obj, px, py, w, h) {
-    // world -> local: apply inverse translate & rotation
-    const dx = px - obj.x, dy = py - obj.y;
-    const cos = Math.cos(obj.rot || 0), sin = Math.sin(obj.rot || 0);
-    const lx = dx * cos + dy * sin;
-    const ly = -dx * sin + dy * cos;
-    return { lx, ly, inside: lx >= -w/2 && lx <= w/2 && ly >= -h/2 && ly <= h/2 };
-  }
-
-  /* compute visual bounds for objects */
-function getObjectBounds(obj) {
-	if (!obj) return { w: 0, h: 0 };
-	if (obj.type === 'text') {
-		const fs = obj.fontSize || 50;
-		ctx.save();
-		ctx.font = `bold ${fs}px "${obj.fontFamily || 'Quicksand'}"`;
-		const metrics = ctx.measureText(obj.content || '');
-		const w = Math.max(40, metrics.width + 24); // padding
-		const h = Math.max(Math.round(fs * 1.2), fs + 10);
-		ctx.restore();
-		return { w, h };
-	}
-	if (obj.type === 'image' && obj.img) {
-		const scale = (obj.scale == null) ? 1 : obj.scale;
-		let w = obj.img.width * scale;
-		let h = obj.img.height * scale;
-		const maxDim = 400;
-		const r = Math.min(1, Math.min(maxDim / w, maxDim / h));
-		if (r < 1) { w *= r; h *= r; }
-		return { w: Math.max(40, w), h: Math.max(40, h) };
-	}
-	return { w: 100, h: 100 };
-}
-
-/* draw dashed rect and bottom-right handle using real bounds */
-function drawActiveHandles(obj) {
-	const b = getObjectBounds(obj);
-	const w = b.w, h = b.h;
-	const cos = Math.cos(obj.rot || 0), sin = Math.sin(obj.rot || 0);
-	const lx = w / 2, ly = h / 2;
-	const wx = obj.x + (lx * cos - ly * sin);
-	const wy = obj.y + (lx * sin + ly * cos);
-
-	ctx.save();
-	ctx.translate(obj.x, obj.y); ctx.rotate(obj.rot || 0);
-	ctx.strokeStyle = '#5b76a8'; ctx.lineWidth = 3;
-	ctx.setLineDash([5,5]);
-	ctx.strokeRect(-w/2, -h/2, w, h);
-	ctx.setLineDash([]);
-	ctx.restore();
-
-	ctx.save();
-	ctx.beginPath();
-	ctx.fillStyle = '#fff';
-	ctx.strokeStyle = '#4CAF50';
-	ctx.lineWidth = 2;
-	ctx.arc(wx, wy, 10, 0, Math.PI*2);
-	ctx.fill(); ctx.stroke();
-	ctx.restore();
-
-	return { handleX: wx, handleY: wy, handleRadius: 10, bboxW: w, bboxH: h };
-}
-
-/* render objects using measured bounds (text font size & image scale) */
-function renderCanvas() {
-    const W = canvas.width, H = canvas.height;
-    ctx.fillStyle = state.bgColor;
-    ctx.fillRect(0,0,W,H);
-
-    if(state.bgImage) {
-      const img = state.bgImage;
-      const r = Math.max(W/img.width, H/img.height);
-      const nw = img.width*r, nh = img.height*r;
-      ctx.drawImage(img, (W-nw)/2, (H-nh)/2, nw, nh);
-    }
-
-    const sel = state.selectedIndices.map(i => state.photos[i]);
-    const g = Math.round(W * 0.04);
-
-    ctx.save();
-    ctx.filter = getFilterString();
-    if(state.targetCount === 1) {
-      const photoH = H * 0.7;
-      drawPhoto(sel[0], g, g, W-2*g, photoH);
-    }
-    else if(state.targetCount === 2) {
-      if(state.layoutSubMode === 'vert') {
-        const photoH = (H - 3*g) / 2;
-        drawPhoto(sel[0], g, g, W-2*g, photoH);
-        drawPhoto(sel[1], g, 2*g+photoH, W-2*g, photoH);
-      } else {
-        const photoW = (W - 3*g) / 2;
-        const photoH = Math.min(photoW * 0.75, (H - 2*g) * 0.9);
-        const topPad = (H - photoH) / 2;
-        drawPhoto(sel[0], g, topPad, photoW, photoH);
-        drawPhoto(sel[1], 2*g+photoW, topPad, photoW, photoH);
-      }
-    }
-    else if(state.targetCount === 4) {
-      if(state.layoutSubMode === 'strip') {
-        const photoH = (H - 5*g) / 4;
-        sel.forEach((p,i)=>drawPhoto(p, g, g+i*(photoH+g), W-2*g, photoH));
-      } else {
-        const photoW = (W - 3*g) / 2;
-        const photoH = (H - 3*g) / 2;
-        drawPhoto(sel[0], g, g, photoW, photoH);
-        drawPhoto(sel[1], 2*g+photoW, g, photoW, photoH);
-        drawPhoto(sel[2], g, 2*g+photoH, photoW, photoH);
-        drawPhoto(sel[3], 2*g+photoW, 2*g+photoH, photoW, photoH);
-      }
-    }
-    else if(state.targetCount === 6 || state.targetCount === 8) {
-      const cols = 2;
-      const rows = state.targetCount / 2;
-      const photoW = (W - 3*g) / cols;
-      const photoH = (H - (rows + 1)*g) / rows;
-      sel.forEach((p,i) => {
-        const c = i % cols;
-        const r = Math.floor(i / cols);
-        drawPhoto(p, g+c*(photoW+g), g+r*(photoH+g), photoW, photoH);
-      });
-    }
-    ctx.restore();
-
-    renderDrawLayer();
-    ctx.drawImage(drawLayer, 0, 0);
-
-    // draw objects
-    state.objects.forEach(obj => {
-      ctx.save();
-      ctx.translate(obj.x, obj.y); ctx.rotate(obj.rot || 0);
-      const b = getObjectBounds(obj);
-      if (obj.type === 'text') {
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        const fs = obj.fontSize || 50;
-        ctx.font = `bold ${fs}px "${obj.fontFamily}"`;
-        ctx.fillStyle = obj.color || '#000';
-        ctx.fillText(obj.content || '', 0, 0);
-      } else if (obj.type === 'image' && obj.img) {
-        const w = b.w, h = b.h;
-        ctx.drawImage(obj.img, -w/2, -h/2, w, h);
-      }
-      ctx.restore();
-    });
-
-    // draw active object's border & handle
-    if (state.activeObj) drawActiveHandles(state.activeObj);
-
-    updateToolbarState();
-  }
-
-function renderDrawLayer() {
-    drawCtx.clearRect(0, 0, drawLayer.width, drawLayer.height);
-    state.drawPaths.forEach(path => drawStroke(path, drawCtx));
-  }
-
-  function drawStroke(path, target) {
-    const t = target || ctx;
-    const baseSize = path.size || 8;
-    
-    // Special handling for dots: render as circles
-    if(path.type === 'dots') {
-      t.save();
-      t.fillStyle = path.color;
-      const dotRadius = Math.max(1, baseSize / 3);
-      const spacing = baseSize * 1.5; // proportional spacing
-      let distSinceLastDot = 0;
-      
-      for(let i = 0; i < path.points.length; i++) {
-        if(i === 0) {
-          t.beginPath();
-          t.arc(path.points[i].x, path.points[i].y, dotRadius, 0, Math.PI * 2);
-          t.fill();
-          distSinceLastDot = 0;
-        } else {
-          const dx = path.points[i].x - path.points[i-1].x;
-          const dy = path.points[i].y - path.points[i-1].y;
-          const dist = Math.sqrt(dx*dx + dy*dy);
-          distSinceLastDot += dist;
-          
-          if(distSinceLastDot >= spacing) {
-            t.beginPath();
-            t.arc(path.points[i].x, path.points[i].y, dotRadius, 0, Math.PI * 2);
-            t.fill();
-            distSinceLastDot = 0;
-          }
-        }
-      }
-      t.restore();
-      return;
-    }
-
-    // Standard stroke rendering for other brush types
-    t.save();
-    t.lineCap = 'round'; t.lineJoin = 'round';
-    t.strokeStyle = path.color;
-    t.lineWidth = path.type === 'pencil' ? Math.max(1, baseSize * 0.7) : baseSize;
-    t.globalAlpha = path.type === 'pencil' ? 0.55 : 1.0;
-
-    if(path.type === 'dotted') t.setLineDash([5, 10]);
-    else t.setLineDash([]);
-
-    if(path.type === 'highlighter') {
-      t.globalAlpha = 0.35;
-      t.lineWidth = baseSize * 2;
-      t.lineCap = 'square';
-      t.lineJoin = 'miter';
-      t.globalCompositeOperation = 'multiply';
-    }
-
-    if(path.type === 'eraser') {
-      t.globalCompositeOperation = 'destination-out';
-      t.lineWidth = baseSize * 2.2;
-      t.setLineDash([]);
-    }
-
-    if(path.points.length > 0) {
-      t.beginPath();
-      t.moveTo(path.points[0].x, path.points[0].y);
-      for(let i=1; i<path.points.length; i++) t.lineTo(path.points[i].x, path.points[i].y);
-      t.stroke();
-    }
-    t.restore();
-  }
-
-  function drawPhoto(img, x, y, w, h) {
-    ctx.save();
-    ctx.beginPath(); ctx.rect(x,y,w,h); ctx.clip();
-    const r = Math.max(w/img.width, h/img.height);
-    ctx.drawImage(img, x+(w-img.width*r)/2, y+(h-img.height*r)/2, img.width*r, img.height*r);
-    ctx.restore();
-  }
-
-  function download() {
-    const link = document.createElement('a');
-    link.href = canvas.toDataURL('image/png');
-    link.download = 'cloud-studio-' + Date.now() + '.png';
-    link.click();
-  }
-
-  function setBgColor(c) { 
-    saveHistory();
-    state.bgColor = c; 
-    state.bgImage = null; 
-    renderCanvas(); 
-  }
-  
-  function setBgImage(e) {
-    const f = e.target.files[0]; if(!f) return;
-    saveHistory();
-    const i = new Image(); 
-    i.onload = () => { state.bgImage = i; renderCanvas(); };
-    i.src = URL.createObjectURL(f);
-  }
-
-  function addText() {
-    state.isDrawing = false; updateToolbarState();
-    saveHistory();
-    addObject({ type:'text', content:'New Text', fontFamily:'Quicksand', color:'#333333', fontSize: 50, rot: 0 });
-  }
-
-  function addMedia(e) {
-    state.isDrawing = false; updateToolbarState();
-    const f = e.target.files[0]; if(!f) return;
-    saveHistory();
-    const img = new Image();
-    img.onload = () => addObject({ type:'image', img: img });
-    img.src = URL.createObjectURL(f);
-  }
-
-  function addObject(props) {
-    state.objects.push({ x: canvas.width/2, y: canvas.height/2, scale: 1, rot: 0, ...props });
-    state.activeObj = state.objects[state.objects.length-1];
-    renderCanvas();
-  }
-
-  function updateActiveFont(font) { if(state.activeObj?.type === 'text') { state.activeObj.fontFamily = font; renderCanvas(); } }
-  function updateActiveColor(color) { if(state.activeObj?.type === 'text') { state.activeObj.color = color; renderCanvas(); } }
-  function updateActiveText(text) { if(state.activeObj?.type === 'text') { state.activeObj.content = text; renderCanvas(); } }
-  function updateActiveSize(size) { if(state.activeObj?.type === 'text') { state.activeObj.fontSize = parseInt(size, 10); renderCanvas(); } }
-  function updateActiveRotate(deg) { if(state.activeObj?.type === 'text') { state.activeObj.rot = (parseFloat(deg) * Math.PI) / 180; renderCanvas(); } }
-  function deleteActiveObject() {
-    if(state.activeObj) {
-      state.objects = state.objects.filter(o => o !== state.activeObj);
-      state.activeObj = null; renderCanvas();
-    }
-  }
-
-  function startSizeAdjust(e) {
-    if(!state.activeObj) return;
-    e.preventDefault();
-    e.stopPropagation();
-    const startY = e.clientY;
-    const startSize = state.activeObj.fontSize || 50;
-    
-    const moveHandler = (moveE) => {
-      const delta = moveE.clientY - startY;
-      const newSize = Math.max(18, Math.min(150, startSize + delta));
-      if(state.activeObj?.type === 'text') {
-        state.activeObj.fontSize = Math.round(newSize);
-        renderCanvas();
-      }
-    };
-    
-    const upHandler = () => {
-      document.removeEventListener('mousemove', moveHandler);
-      document.removeEventListener('mouseup', upHandler);
-    };
-    
-    document.addEventListener('mousemove', moveHandler);
-    document.addEventListener('mouseup', upHandler);
-  }
-
-  function startRotateAdjust(e) {
-    if(!state.activeObj) return;
-    e.preventDefault();
-    e.stopPropagation();
-    const startX = e.clientX;
-    const startRot = state.activeObj.rot || 0;
-    
-    const moveHandler = (moveE) => {
-      const delta = moveE.clientX - startX;
-      const newRot = startRot + (delta * 0.03);
-      if(state.activeObj?.type === 'text') {
-        state.activeObj.rot = newRot;
-        renderCanvas();
-      }
-    };
-    
-    const upHandler = () => {
-      document.removeEventListener('mousemove', moveHandler);
-      document.removeEventListener('mouseup', upHandler);
-    };
-    
-    document.addEventListener('mousemove', moveHandler);
-    document.addEventListener('mouseup', upHandler);
-  }
-
-  function getFilterString() {
-    const i = state.filterIntensity;
-    switch(state.filterType) {
-      case 'bw': return `grayscale(1) contrast(${1 + 0.2*i})`;
-      case 'vintage': return `sepia(${0.4*i}) saturate(${1 + 0.2*i}) contrast(${1 - 0.1*i})`;
-      case 'retro': return `sepia(${0.2*i}) saturate(${1.2}) contrast(${1 + 0.1*i})`;
-      case 'cool': return `contrast(${1 + 0.1*i}) saturate(${1.1}) hue-rotate(8deg)`;
-      case 'warm': return `sepia(${0.2*i}) saturate(${1.1}) brightness(${1 + 0.05*i})`;
-      case 'peach': return `sepia(${0.25*i}) saturate(${1.2}) brightness(${1 + 0.05*i})`;
-      case 'milk': return `brightness(${1 + 0.1*i}) saturate(${1 - 0.1*i}) contrast(${1 - 0.1*i})`;
-      case 'film': return `contrast(${1 - 0.05*i}) brightness(${1 + 0.05*i}) sepia(${0.3*i})`;
-      case 'bright': return `brightness(${1 + 0.2*i}) contrast(${1 - 0.05*i})`;
-      default: return 'none';
-    }
-  }
-
-  function setFilter(t) { state.filterType = t; renderCanvas(); }
-  function setFilterIntensity(v) { state.filterIntensity = parseFloat(v); renderCanvas(); }
-
-  function openMenu(id) {
-	// close other tools/menus and ensure draw mode is off
-	closeMenus();
-	state.isDrawing = false;
-	updateToolbarState();
-	const el = document.getElementById(id + '-menu');
-	if (el) el.classList.add('active');
-}
-
-  function closeMenus() {
-    document.querySelectorAll('.context-bar').forEach(e => e.classList.remove('active'));
-  }
-
-  function setBrush(type) { 
-	// switching brush should activate draw mode and close other menus
-	closeMenus();
-	state.brushType = type;
-	state.isDrawing = true;
-	const sizeControl = document.getElementById('size-control');
-	if(sizeControl) sizeControl.style.display = 'flex';
-	updateToolbarState();
-}
-
-  function toggleDrawMode() {
-	// when toggling draw, close any open menus so only one tool is active
-	closeMenus();
-	state.isDrawing = !state.isDrawing;
-	if(state.isDrawing) {
-		state.activeObj = null;
-		saveHistory();
-	}
-	updateToolbarState();
-}
-
-  function updateBrushSize(value) {
-    state.brushSize = parseInt(value, 10);
-    const preview = document.getElementById('size-preview');
-    if(preview) {
-      const circle = preview.querySelector('circle');
-      if(circle) circle.setAttribute('r', Math.max(2, state.brushSize / 2));
-    }
-  }
-
-  function saveHistory() {
-    state.historyStep++;
-    state.history = state.history.slice(0, state.historyStep);
-    state.history.push({
-      drawPaths: JSON.parse(JSON.stringify(state.drawPaths)),
-      objects: JSON.parse(JSON.stringify(state.objects.map(o => ({ ...o, img: o.img ? 'IMAGE' : undefined })))),
-      bgColor: state.bgColor,
-      bgImage: state.bgImage ? 'IMAGE' : null
-    });
-  }
-
-  function undo() {
-    if(state.historyStep > 0) {
-      state.historyStep--;
-      applyHistory();
-    }
-  }
-
-  function redo() {
-    if(state.historyStep < state.history.length - 1) {
-      state.historyStep++;
-      applyHistory();
-    }
-  }
-
-  function applyHistory() {
-    const h = state.history[state.historyStep];
-    if(!h) return;
-    state.drawPaths = JSON.parse(JSON.stringify(h.drawPaths));
-    state.bgColor = h.bgColor;
-    state.objects = h.objects.filter(o => o.img !== 'IMAGE');
-    state.activeObj = null;
-    renderCanvas();
-  }
-
-  function updateToolbarState() {
-    document.getElementById('draw-menu').classList.toggle('active', state.isDrawing);
-    document.getElementById('text-menu').classList.toggle('active', !state.isDrawing && state.activeObj && state.activeObj.type === 'text');
-    document.getElementById('btn-draw').classList.toggle('active', state.isDrawing);
-    if (state.activeObj && state.activeObj.type === 'text') {
-      const input = document.getElementById('text-edit');
-      if (input) input.value = state.activeObj.content || '';
-      const colorInput = document.getElementById('text-color');
-      if (colorInput) colorInput.value = state.activeObj.color || '#000000';
-    }
-  }
-
-  function switchView(id) {
-    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-  }
-
-  function setZoom(v) {
-    state.zoom = parseFloat(v);
-    canvas.style.transform = `scale(${state.zoom})`;
-  }
-
-  function enableHorizontalScroll(el) {
-    if (!el) return;
-    el.addEventListener('wheel', (e) => {
-      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-        el.scrollLeft += e.deltaY;
-        e.preventDefault();
-      }
-    }, { passive: false });
-  }
-
-  enableHorizontalScroll(document.querySelector('.tool-section'));
-  document.querySelectorAll('.context-bar').forEach(enableHorizontalScroll);
-</script>
+<script src="script.js"></script>
 </body>
 </html>
