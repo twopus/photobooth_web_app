@@ -38,3 +38,10 @@ I used my iPad to make the first version and used [w3schools](https://www.w3scho
 I only decided to continue this because the first version was actually quite good
 
 You can check out the ["good ones"](https://github.com/twopus/photobooth_web_app/tree/043134835ce3b9ddac4ec1b1b920f2d2a3978eed/good%20ones) folder to see the relatively more functional versions that I like the most
+
+<br><br>
+### 3/2/2025 - Day 2 Recap
+
+Good thing the math quiz got postponed til next monday. I used up all my chatgpt codex quotas for the month and i just realised i cant delete the gemini chats on my schoopl account. I used 90% of my copilot monthly quota but luckily i applied for the student pack and got accepted so ill get more requests for copilot after 72 hours.
+
+Anyways as you can tell this is very unserious (someone called my readme an absolute pain so yeah) hopefully i can get this done soon im so tired
