@@ -45,3 +45,11 @@ This recap is authored by ███████, fixed some stuff at 1am simply 
 Apparently twopus is too lazy to seperate the page into js html and css so I did it myself and uhhh I think I fixed some stuff while breaking something else (lol), aight gotta go to sleep cuz tmr I also hav school.
 
 To twopus: Hey Im torturing myself on this for way longer than I expected so can you go ask your gemini what I accidentally broke and fix it plz I rlly go to sleep with these bugs left behind :smirk::sob:
+
+<br><br>
+
+### 4/2/2025 - Day 3 Recap
+
+Website is broken now but at least ███████ ~~(what in the files lol)~~ helped me separate the file into 3 different styles (tysm fr cuz my ahh is too lazy)
+
+Lil bro shld def sleep more frfr but yeah im hea-ing ts cuz i reached copilots limit
